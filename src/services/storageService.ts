@@ -11,7 +11,7 @@ import {
   orderBy,
   Unsubscribe 
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType, cleanForFirestore } from './firebase';
+import { db, auth, handleFirestoreError, OperationType, cleanForFirestore } from './firebase';
 import { 
   Shipment, 
   QuoteRequest, 
@@ -262,16 +262,23 @@ async function seedInitialFirestoreData() {
   }
 
   try {
-    const messagesColl = collection(db, 'messages');
-    const snap = await getDocs(messagesColl);
-    if (snap.empty) {
-      const initialMsgs = storageService.getContactMessages();
-      for (const m of initialMsgs) {
-        await setDoc(doc(db, 'messages', m.id), cleanForFirestore(m));
+    // Contact messages are strictly protected in firestore.rules (allow read: if isAuthorizedUser()).
+    // Only check or seed messages if an authorized operator/admin session is active.
+    if (auth.currentUser) {
+      const messagesColl = collection(db, 'messages');
+      const snap = await getDocs(messagesColl);
+      if (snap.empty) {
+        const initialMsgs = storageService.getContactMessages();
+        for (const m of initialMsgs) {
+          await setDoc(doc(db, 'messages', m.id), cleanForFirestore(m));
+        }
       }
     }
-  } catch (err) {
-    console.warn('Firestore initial messages seed notice:', err);
+  } catch (err: any) {
+    // Only log if it's not an expected permission denial for unauthenticated visitors
+    if (err?.code !== 'permission-denied') {
+      console.warn('Firestore initial messages seed notice:', err);
+    }
   }
 
   try {

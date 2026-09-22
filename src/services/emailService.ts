@@ -156,10 +156,18 @@ export const emailService = {
       })
         .then(async (res) => {
           if (!res.ok) {
-            const errorData = await res.json().catch(() => null);
-            const errorMsg =
-              errorData?.error ||
-              (res.statusText ? `HTTP ${res.status}: ${res.statusText}` : `HTTP ${res.status}`);
+            let errorMsg = `HTTP ${res.status}`;
+            try {
+              const text = await res.text();
+              try {
+                const parsed = JSON.parse(text);
+                errorMsg = parsed?.error || parsed?.message || text;
+              } catch {
+                errorMsg = text ? text.slice(0, 300) : (res.statusText ? `HTTP ${res.status}: ${res.statusText}` : `HTTP ${res.status}`);
+              }
+            } catch {
+              errorMsg = res.statusText ? `HTTP ${res.status}: ${res.statusText}` : `HTTP ${res.status}`;
+            }
             console.warn('[EMAIL DISPATCH]', `Server returned HTTP ${res.status}:`, errorMsg);
             this.updateEmailDispatchStatus(newRecord.id, 'pending');
             return;

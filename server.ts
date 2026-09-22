@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import sendEmailHandler from './api/send-email';
+import sendEmailHandler from './api/send-email.js';
 
 async function startServer() {
   const app = express();

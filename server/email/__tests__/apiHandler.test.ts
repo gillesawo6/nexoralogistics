@@ -1,4 +1,4 @@
-import handler from '../../../api/send-email';
+import handler from '../../../api/send-email.js';
 
 function createMockRes() {
   const res: any = {
