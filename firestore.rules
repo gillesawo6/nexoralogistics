@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'gillesawo6@gmail.com' ||
+        (exists(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid)).data.authorized == true &&
+         get(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function isAuthorizedUser() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'gillesawo6@gmail.com' ||
+        (exists(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/authorizedUsers/$(request.auth.uid)).data.authorized == true)
+      );
+    }
+
+    // Authorization collection (Closed User Allowlist)
+    match /authorizedUsers/{userId} {
+      // Any authenticated user can read their own authorization record to verify clearance
+      allow get: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      // Only Super Admin can list all authorized users or make changes to authorizations
+      allow list, create, update, delete: if isSuperAdmin();
+    }
+
+    // Shipments: Public can read for tracking; authenticated & authorized operators can manage
+    match /shipments/{shipmentId} {
+      allow read: if true;
+      allow write: if isAuthorizedUser();
+    }
+
+    // Quotes: Public can create quotes, view quotes, and submit accept/decline; authorized operators have full management
+    match /quotes/{quoteId} {
+      allow read, create, update: if true;
+      allow delete: if isAuthorizedUser();
+    }
+
+    // Contact Messages: Public can submit inquiries; authorized operators can view, update, and manage
+    match /messages/{messageId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthorizedUser();
+    }
+
+    // Newsletter Subscribers: Public can subscribe; authorized operators can view and manage
+    match /subscribers/{subscriberId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthorizedUser();
+    }
+
+    // Users collection: operator profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isSuperAdmin());
+    }
+
+    // Company Info: Public can read; authorized operators can update
+    match /company_info/{docId} {
+      allow read: if true;
+      allow write: if isAuthorizedUser();
+    }
+
+    // Connection check document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}

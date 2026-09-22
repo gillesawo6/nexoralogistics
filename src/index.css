@@ -1,0 +1,355 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-sans: 'Plus Jakarta Sans', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --color-bg-main: #f8fafc;
+    --color-text-main: #0f172a;
+  }
+
+  .dark {
+    --color-bg-main: #030712;
+    --color-text-main: #f3f4f6;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-bg-main);
+    color: var(--color-text-main);
+    overflow-x: hidden;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  h1, h2, h3, h4, .font-heading {
+    font-family: var(--font-display);
+    letter-spacing: -0.03em;
+  }
+
+  .font-mono-tech {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Tech grid & scan lines */
+.bg-grid-pattern {
+  background-size: 40px 40px;
+  background-image: 
+    linear-gradient(to right, rgba(15, 23, 42, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(15, 23, 42, 0.05) 1px, transparent 1px);
+}
+.dark .bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.bg-radial-gradient {
+  background: radial-gradient(circle at 50% 30%, rgba(0, 102, 255, 0.08), transparent 70%);
+}
+.dark .bg-radial-gradient {
+  background: radial-gradient(circle at 50% 30%, rgba(0, 102, 255, 0.15), transparent 70%);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-main);
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #1f2937;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #0066ff;
+}
+
+/* Leaflet dark/light theme */
+.leaflet-container {
+  background: #f1f5f9 !important;
+  font-family: inherit;
+}
+.dark .leaflet-container {
+  background: #090e1a !important;
+}
+
+.leaflet-popup-content-wrapper, .leaflet-popup-tip {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+}
+.dark .leaflet-popup-content-wrapper, .dark .leaflet-popup-tip {
+  background: #0d1527 !important;
+  color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.15) !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Pulsing radar animation */
+@keyframes radar-ping {
+  0% {
+    transform: scale(0.8);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.animate-radar {
+  animation: radar-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+.animate-float {
+  animation: float-slow 4s ease-in-out infinite;
+}
+
+@keyframes hero-progress {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print stylesheet optimizations for official consignment & quote dossiers */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  /* Reset body and html to fixed printable geometry */
+  html,
+  body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-scheme: light !important;
+    font-size: 10pt !important;
+    width: 210mm !important;
+    min-width: 210mm !important;
+    height: auto !important;
+    min-height: 100% !important;
+    overflow: visible !important;
+    position: static !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  #root,
+  main,
+  div,
+  section {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
+  /* Hide non-printable application chrome, navigation, chat, popups, toolbars */
+  header:not(.printable-dossier-document header):not(.printable-quote-document header):not(#official-quote-dossier header),
+  nav,
+  footer:not(.printable-dossier-document footer):not(.printable-quote-document footer):not(#official-quote-dossier footer),
+  .no-print,
+  .print\:hidden,
+  .print-controls-toolbar,
+  #tawk-default-container,
+  div[id*="tawk"],
+  .floating-communication-stack,
+  .quick-search-hud,
+  button:not(.printable-dossier-document button):not(.printable-quote-document button),
+  .interactive-map-hud,
+  .fixed.top-4,
+  .fixed.bottom-4,
+  .print-duplicate-hidden {
+    display: none !important;
+  }
+
+  /* Preview wrapper containers reset: neutralizes screen-only zoom, scales, sticky/fixed backdrops */
+  .printable-shipment-wrapper,
+  .print-quote-wrapper,
+  .print-preview-viewport,
+  .print-preview-scale-wrapper {
+    position: static !important;
+    display: block !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border: none !important;
+    transform: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Official A4 Document container: fixed physical print width (190mm fits standard 210mm A4 with 10mm margins) */
+  .printable-dossier-document,
+  .printable-quote-document,
+  #official-quote-dossier,
+  #printable-shipment-dossier,
+  #nexora-admin-master-manual,
+  .print-document {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+    width: 190mm !important;
+    min-width: 190mm !important;
+    max-width: 190mm !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+    background: #ffffff !important;
+    color: #0f172a !important;
+    transform: none !important;
+  }
+
+  /* Ensure headers, tables, barcodes, badges, stamps, and footers are visible and colored */
+  .printable-dossier-document header,
+  .printable-quote-document header,
+  #official-quote-dossier header,
+  .printable-dossier-document footer,
+  .printable-quote-document footer,
+  #official-quote-dossier footer {
+    display: block !important;
+  }
+
+  /* Structural physical print layouts: Prevents mobile screen viewport collapse on A4 */
+  .dossier-header-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 20px !important;
+  }
+
+  .dossier-parties-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+  }
+
+  .dossier-specs-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px 16px !important;
+  }
+
+  .dossier-quote-route-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 16px !important;
+  }
+
+  .dossier-quote-cargo-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 10px !important;
+  }
+
+  .dossier-telemetry-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+  }
+
+  .dossier-signatures-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 16px !important;
+    align-items: flex-end !important;
+  }
+
+  .dossier-footer-legal-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .dossier-totals-box {
+    width: 320px !important;
+    min-width: 320px !important;
+  }
+
+  /* Fixed, non-overflowing tables */
+  .printable-dossier-document table,
+  .printable-quote-document table {
+    width: 100% !important;
+    table-layout: fixed !important;
+    border-collapse: collapse !important;
+  }
+
+  .printable-dossier-document th,
+  .printable-dossier-document td,
+  .printable-quote-document th,
+  .printable-quote-document td {
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
+  /* Barcodes, QR codes & logos maintain fixed geometry */
+  .dossier-barcode-box svg {
+    max-width: 100% !important;
+    height: 48px !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  .dossier-qr-img {
+    width: 56px !important;
+    height: 56px !important;
+    object-fit: contain !important;
+  }
+
+  /* Page break rules */
+  .break-inside-avoid,
+  table,
+  tr,
+  section,
+  header,
+  footer {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Prevent forced dark-mode text inverting when printing */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+

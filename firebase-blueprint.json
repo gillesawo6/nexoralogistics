@@ -1,0 +1,235 @@
+{
+  "entities": {
+    "AuthorizedUser": {
+      "title": "AuthorizedUser",
+      "description": "Explicit allowlist record for closed/private application access control",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "authorized": { "type": "boolean" },
+        "role": { "type": "string" },
+        "displayName": { "type": "string" },
+        "department": { "type": "string" },
+        "approvedAt": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "email", "authorized", "role"]
+    },
+    "Shipment": {
+      "title": "Shipment",
+      "description": "Global freight shipment record with tracking, routing, and IoT telemetry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerEmail": { "type": "string" },
+        "customerCompany": { "type": "string" },
+        "origin": { "type": "object" },
+        "destination": { "type": "object" },
+        "currentLocation": { "type": "object" },
+        "transportMode": { "type": "string" },
+        "serviceLevel": { "type": "string" },
+        "weightKg": { "type": "number" },
+        "volumeCbm": { "type": "number" },
+        "pieces": { "type": "number" },
+        "cargoDescription": { "type": "string" },
+        "status": { "type": "string" },
+        "progressPercent": { "type": "number" },
+        "carrier": { "type": "string" },
+        "vesselOrFlightNumber": { "type": "string" },
+        "containerNumber": { "type": "string" },
+        "estimatedDelivery": { "type": "string" },
+        "dispatchedDate": { "type": "string" },
+        "lastUpdated": { "type": "string" },
+        "waypoints": { "type": "array" },
+        "events": { "type": "array" },
+        "isSimulatedDemo": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["trackingNumber", "origin", "destination", "status", "transportMode"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "Freight price and rate quotation request with professional price builder, multi-charge breakdown, and customer acceptance workflow",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "referenceNumber": { "type": "string" },
+        "fullName": { "type": "string" },
+        "companyName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "service": { "type": "string" },
+        "cargoType": { "type": "string" },
+        "cargoDescription": { "type": "string" },
+        "packageType": { "type": "string" },
+        "pieces": { "type": "number" },
+        "weightKg": { "type": "number" },
+        "volumeCbm": { "type": "number" },
+        "dimensions": { "type": "object" },
+        "declaredValue": { "type": "number" },
+        "declaredValueCurrency": { "type": "string" },
+        "originCity": { "type": "string" },
+        "originCountry": { "type": "string" },
+        "originAddress": { "type": "string" },
+        "originPostalCode": { "type": "string" },
+        "destCity": { "type": "string" },
+        "destCountry": { "type": "string" },
+        "destAddress": { "type": "string" },
+        "destPostalCode": { "type": "string" },
+        "specialRequirements": { "type": "array" },
+        "notes": { "type": "string" },
+        "internalAdminNotes": { "type": "string" },
+        "status": { "type": "string" },
+        "pricing": { "type": "object" },
+        "estimatedCostUsd": { "type": "number" },
+        "estimatedTransitDays": { "type": "number" },
+        "validUntil": { "type": "string" },
+        "sentAt": { "type": "string" },
+        "sentBy": { "type": "string" },
+        "acceptedAt": { "type": "string" },
+        "acceptedByName": { "type": "string" },
+        "acceptanceNotes": { "type": "string" },
+        "declinedAt": { "type": "string" },
+        "declinedReason": { "type": "string" },
+        "convertedShipmentId": { "type": "string" },
+        "convertedTrackingNumber": { "type": "string" },
+        "activityLog": { "type": "array" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["fullName", "email", "service", "originCity", "destCity", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Operations operator profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "role": { "type": "string" },
+        "department": { "type": "string" },
+        "accessLevel": { "type": "string" },
+        "status": { "type": "string" },
+        "provider": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "lastLoginAt": { "type": "string" }
+      },
+      "required": ["uid", "email"]
+    },
+    "CompanyInfo": {
+      "title": "CompanyInfo",
+      "description": "Global enterprise corporate profiles, communication lines, tax registrations, and dispatch hub directories",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "companyName": { "type": "string" },
+        "tradeName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "description": { "type": "string" },
+        "foundedYear": { "type": "number" },
+        "website": { "type": "string" },
+        "primaryEmail": { "type": "string" },
+        "supportEmail": { "type": "string" },
+        "quotesEmail": { "type": "string" },
+        "customsEmail": { "type": "string" },
+        "mediaEmail": { "type": "string" },
+        "primaryPhone": { "type": "string" },
+        "tollFreePhone": { "type": "string" },
+        "emergencyPhone": { "type": "string" },
+        "whatsappPhone": { "type": "string" },
+        "faxNumber": { "type": "string" },
+        "hqAddress": { "type": "string" },
+        "hqCity": { "type": "string" },
+        "hqCountry": { "type": "string" },
+        "hqPostalCode": { "type": "string" },
+        "businessHours": { "type": "string" },
+        "dispatchDeskHours": { "type": "string" },
+        "registrationNumber": { "type": "string" },
+        "taxId": { "type": "string" },
+        "dunsNumber": { "type": "string" },
+        "iataCode": { "type": "string" },
+        "fmcNumber": { "type": "string" },
+        "aeoCertificate": { "type": "string" },
+        "isoCertifications": { "type": "string" },
+        "linkedinUrl": { "type": "string" },
+        "twitterUrl": { "type": "string" },
+        "bankName": { "type": "string" },
+        "bankAccountName": { "type": "string" },
+        "iban": { "type": "string" },
+        "swiftBic": { "type": "string" },
+        "lastUpdated": { "type": "string" },
+        "updatedBy": { "type": "string" }
+      },
+      "required": ["companyName", "primaryEmail", "primaryPhone", "hqAddress"]
+    },
+    "ContactMessage": {
+      "title": "ContactMessage",
+      "description": "Customer and client inquiries submitted via the portal contact channels",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "company": { "type": "string" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "department": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["name", "email", "subject", "message", "status"]
+    },
+    "Subscriber": {
+      "title": "Subscriber",
+      "description": "Global freight intelligence and trade digest subscribers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "subscribedAt": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["email", "subscribedAt", "status"]
+    }
+  },
+  "firestore": {
+    "/authorizedUsers/{userId}": {
+      "entity": "AuthorizedUser",
+      "description": "Administrator allowlist store determining whether an authenticated Firebase user has explicit application access"
+    },
+    "/shipments/{shipmentId}": {
+      "entity": "Shipment",
+      "description": "Live freight shipments and tracking records accessible by public tracking and managed by staff"
+    },
+    "/quotes/{quoteId}": {
+      "entity": "Quote",
+      "description": "Customer freight rate requests and quotes"
+    },
+    "/messages/{messageId}": {
+      "entity": "ContactMessage",
+      "description": "Customer inquiries and dispatch messages"
+    },
+    "/subscribers/{subscriberId}": {
+      "entity": "Subscriber",
+      "description": "Newsletter and global trade intelligence email subscribers"
+    },
+    "/users/{userId}": {
+      "entity": "User",
+      "description": "Authenticated logistics operators and admin profiles"
+    },
+    "/company_info/{docId}": {
+      "entity": "CompanyInfo",
+      "description": "Centralized company profile containing phone numbers, emails, addresses, licenses, and global operations configuration"
+    }
+  }
+}
