@@ -15,6 +15,8 @@ const smtpProvider = new SmtpProvider();
  * 3. Returns a confirmed dispatch result or throws an explicit EmailDispatchError with safe client message.
  */
 export async function dispatchEmail(req: ValidatedEmailRequest): Promise<EmailDispatchResult> {
+  console.log('[EMAIL API] Starting email dispatch');
+  smtpProvider.logDiagnostics();
   console.log(`[EMAIL API] [STAGE: request_validation] Recipient verified: ${maskEmail(req.to)} | Subject: "${req.subject}" | Type: "${req.type || 'general'}"`);
 
   const hasOAuthConfig = gmailOAuthProvider.isConfigured();
@@ -24,7 +26,7 @@ export async function dispatchEmail(req: ValidatedEmailRequest): Promise<EmailDi
   if (!hasOAuthConfig && !hasSmtpConfig) {
     console.error(
       '[EMAIL API] [STAGE: configuration] Error: No email provider configured on server. ' +
-      'Missing GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN and SMTP_USER/PASS (or GMAIL_APP_PASSWORD).'
+      'Missing SMTP_USER / SMTP_PASS in Vercel environment variables (check Vercel Project Settings > Environment Variables > Production).'
     );
     throw new EmailDispatchError(
       'configuration',

@@ -65,6 +65,7 @@ export type EmailDiagnosticStage =
   | 'completed';
 
 export class EmailDispatchError extends Error {
+  readonly isEmailDispatchError = true;
   stage: EmailDiagnosticStage;
   statusCode: number;
   clientMessage: string;

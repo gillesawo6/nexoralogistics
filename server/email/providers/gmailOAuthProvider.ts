@@ -1,23 +1,21 @@
-import { google } from 'googleapis';
-import MailComposer from 'nodemailer/lib/mail-composer';
+import nodemailer from 'nodemailer';
 import type { SendMailOptions } from 'nodemailer';
+import { google } from 'googleapis';
 import { EmailDispatchError, EmailDiagnosticStage, EmailProviderAdapter, ValidatedEmailRequest } from '../types';
 import { maskEmail } from '../validation';
 
 /**
- * Builds an RFC 2822 standard MIME message buffer using Nodemailer's MailComposer.
+ * Builds an RFC 2822 standard MIME message buffer using Nodemailer's standard streamTransport.
  * Generates properly structured MIME boundaries, headers, UTF-8 encoded words, and body parts.
+ * 100% compatible with Node.js ESM and Vercel Serverless runtime without subpath directory imports.
  */
 async function buildMimeMessage(mailOptions: SendMailOptions): Promise<Buffer> {
-  const mail = new MailComposer(mailOptions);
-  return new Promise((resolve, reject) => {
-    mail.compile().build((err: Error | null, message: Buffer) => {
-      if (err) {
-        return reject(err);
-      }
-      resolve(message);
-    });
+  const transporter = nodemailer.createTransport({
+    streamTransport: true,
+    buffer: true,
   });
+  const info = await transporter.sendMail(mailOptions);
+  return info.message as Buffer;
 }
 
 export class GmailOAuthProvider implements EmailProviderAdapter {

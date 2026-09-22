@@ -4,6 +4,14 @@ import { validateEmailRequest } from '../server/email/validation';
 import { dispatchEmail } from '../server/email/emailDispatcher';
 import { EmailDispatchError } from '../server/email/types';
 
+function isEmailDispatchError(err: any): err is EmailDispatchError {
+  return (
+    err instanceof EmailDispatchError ||
+    (Boolean(err) && typeof err === 'object' && err.isEmailDispatchError === true) ||
+    (Boolean(err) && typeof err === 'object' && typeof err.stage === 'string' && typeof err.statusCode === 'number')
+  );
+}
+
 /**
  * Universal Production Email API Handler
  *
@@ -21,6 +29,8 @@ import { EmailDispatchError } from '../server/email/types';
  * - Structured JSON errors with specific diagnostic stages are returned for observability.
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  res.setHeader('Content-Type', 'application/json');
+
   // 1. Enforce POST method
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
@@ -38,6 +48,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       payload = JSON.parse(req.body);
     } else if (req.body && typeof req.body === 'object') {
       payload = req.body;
+    } else if (req.body === undefined || req.body === null) {
+      // In case Vercel Serverless Function receives a stream rather than pre-parsed body
+      const chunks: Buffer[] = [];
+      for await (const chunk of req as any) {
+        chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+      }
+      if (chunks.length > 0) {
+        const raw = Buffer.concat(chunks).toString('utf-8');
+        payload = JSON.parse(raw);
+      } else {
+        return res.status(400).json({
+          success: false,
+          stage: 'request_parsing',
+          error: 'Missing request body. Expected a JSON object.',
+        });
+      }
     } else {
       return res.status(400).json({
         success: false,
@@ -76,7 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       subject: result.subject,
     });
   } catch (err: any) {
-    if (err instanceof EmailDispatchError) {
+    if (isEmailDispatchError(err)) {
       console.error(`[API /api/send-email ERROR] [STAGE: ${err.stage}] ${err.message}`);
       return res.status(err.statusCode).json({
         success: false,
@@ -86,11 +112,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    console.error('[API /api/send-email UNHANDLED ERROR]:', err?.message || err);
+    console.error('[API /api/send-email UNHANDLED ERROR]:', err?.stack || err?.message || err);
     return res.status(500).json({
       success: false,
       stage: 'internal_server_error',
-      error: 'An unexpected error occurred while processing the email dispatch.',
+      error: 'Email service temporarily unavailable',
     });
   }
 }

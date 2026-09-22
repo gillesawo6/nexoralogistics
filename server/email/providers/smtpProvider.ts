@@ -26,8 +26,11 @@ export class SmtpProvider implements EmailProviderAdapter {
       ''
     ).trim();
 
+    // Strip surrounding quotes if the user wrapped the variable in quotes in the Vercel dashboard
+    const unquotedPass = rawSmtpPass.replace(/^["']|["']$/g, '').trim();
+
     // Remove whitespace/newlines (crucial for Google App Passwords formatted like 'abcd efgh ijkl mnop')
-    const smtpPass = rawSmtpPass.replace(/\s+/g, '');
+    const smtpPass = unquotedPass.replace(/\s+/g, '');
 
     const smtpFrom = (
       process.env.SMTP_FROM ||
@@ -40,6 +43,20 @@ export class SmtpProvider implements EmailProviderAdapter {
     return { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom };
   }
 
+  logDiagnostics() {
+    const { smtpHost, smtpPort, smtpUser, smtpPass } = this.getCredentials();
+    console.log('[EMAIL API] Starting email dispatch diagnostics');
+    console.log(`[EMAIL API] SMTP_HOST: ${smtpHost ? 'present (' + smtpHost + ')' : 'missing'}`);
+    console.log(`[EMAIL API] SMTP_PORT: ${smtpPort ? 'present (' + smtpPort + ')' : 'missing'}`);
+    console.log(`[EMAIL API] SMTP_USER: ${smtpUser ? 'present (' + maskEmail(smtpUser) + ')' : 'missing'}`);
+    console.log(`[EMAIL API] SMTP_PASS: ${smtpPass ? 'present' : 'missing'}`);
+    if (smtpPass) {
+      console.log(`[EMAIL API] SMTP_PASS_LENGTH: ${smtpPass.length}`);
+    } else {
+      console.warn('[EMAIL API] Missing SMTP_PASS environment variable. Ensure SMTP_PASS is configured in Vercel Project Settings > Environment Variables under the "Production" environment.');
+    }
+  }
+
   isConfigured(): boolean {
     const { smtpUser, smtpPass } = this.getCredentials();
     return Boolean(smtpUser && smtpPass);
@@ -49,11 +66,12 @@ export class SmtpProvider implements EmailProviderAdapter {
     const { smtpHost, smtpPort, smtpUser, smtpPass, smtpFrom } = this.getCredentials();
 
     if (!smtpUser || !smtpPass) {
+      console.error('[EMAIL API] Missing SMTP credentials. Checked SMTP_USER and SMTP_PASS.');
       throw new EmailDispatchError(
         'configuration',
         503,
-        'Email service configuration is missing on the server. SMTP credentials are not configured.',
-        'Missing SMTP_USER or SMTP_PASS (or GMAIL_APP_PASSWORD).',
+        'Email service temporarily unavailable. Server email credentials are not configured.',
+        'Missing SMTP_USER or SMTP_PASS (or GMAIL_APP_PASSWORD) in server environment variables.',
         this.name
       );
     }
@@ -74,16 +92,20 @@ export class SmtpProvider implements EmailProviderAdapter {
       },
     };
 
-    console.log(`[EMAIL API] [STAGE: authentication] Initializing SMTP connection (${smtpHost}:${smtpPort}) for sender ${smtpUser}...`);
+    const isGmailHost = smtpHost.includes('gmail');
+    const effectiveHost = isGmailHost ? 'smtp.gmail.com' : smtpHost;
+    const primarySecure = smtpPort === 465;
 
-    // 1. Primary SSL Transport (Port 465 or designated port)
+    console.log('[EMAIL API] Creating SMTP transporter');
+    console.log(`[EMAIL API] [STAGE: authentication] Initializing SMTP connection (${effectiveHost}:${smtpPort}, secure=${primarySecure}) for sender ${maskEmail(smtpUser)}...`);
+
+    // 1. Primary Transport (Port 465 SSL or configured port)
     try {
-      const isGmail = smtpHost.includes('gmail');
+      console.log('[EMAIL API] Sending email (primary transport)...');
       const transporter = nodemailer.createTransport({
-        service: isGmail ? 'gmail' : undefined,
-        host: isGmail ? undefined : smtpHost,
+        host: effectiveHost,
         port: smtpPort,
-        secure: smtpPort === 465,
+        secure: primarySecure,
         auth: {
           user: smtpUser,
           pass: smtpPass,
@@ -91,8 +113,9 @@ export class SmtpProvider implements EmailProviderAdapter {
         tls: {
           rejectUnauthorized: false,
         },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
+        connectionTimeout: 5000,
+        greetingTimeout: 5000,
+        socketTimeout: 8000,
       });
 
       console.log(`[EMAIL API] [STAGE: provider_send] Transmitting via SMTP to ${maskEmail(req.to)}...`);
@@ -104,15 +127,20 @@ export class SmtpProvider implements EmailProviderAdapter {
       };
     } catch (primaryErr: any) {
       const primaryMsg = primaryErr?.message || String(primaryErr);
-      console.warn(`[EMAIL API] [STAGE: provider_send] Primary SMTP transport failed (${primaryMsg}). Attempting STARTTLS port 587 fallback...`);
+      console.warn(`[EMAIL API] Primary SMTP transport failed (${primaryMsg}).`);
 
-      // 2. STARTTLS Port 587 Fallback
+      // 2. Dual Fallback Transport (Port 587 STARTTLS if 465 failed, or 465 SSL if 587 failed)
+      const fallbackPort = smtpPort === 465 ? 587 : 465;
+      const fallbackSecure = fallbackPort === 465;
+
+      console.log(`[EMAIL API] Attempting fallback to SMTP port ${fallbackPort} (secure=${fallbackSecure})...`);
+
       try {
         const fallbackTransporter = nodemailer.createTransport({
-          host: smtpHost.includes('gmail') ? 'smtp.gmail.com' : smtpHost,
-          port: 587,
-          secure: false,
-          requireTLS: true,
+          host: effectiveHost,
+          port: fallbackPort,
+          secure: fallbackSecure,
+          requireTLS: !fallbackSecure,
           auth: {
             user: smtpUser,
             pass: smtpPass,
@@ -120,36 +148,51 @@ export class SmtpProvider implements EmailProviderAdapter {
           tls: {
             rejectUnauthorized: false,
           },
-          connectionTimeout: 10000,
-          greetingTimeout: 10000,
+          connectionTimeout: 5000,
+          greetingTimeout: 5000,
+          socketTimeout: 8000,
         });
 
+        console.log(`[EMAIL API] Sending email via fallback port ${fallbackPort}...`);
         const retryInfo = await fallbackTransporter.sendMail(mailOptions);
-        console.log(`[EMAIL API] [STAGE: completed] Email sent via SMTP (STARTTLS 587)! Message ID: ${retryInfo.messageId}`);
+        console.log(`[EMAIL API] [STAGE: completed] Email sent via fallback SMTP (${fallbackPort})! Message ID: ${retryInfo.messageId}`);
         return {
           success: true,
-          messageId: retryInfo.messageId || `smtp-587-${Date.now()}`,
+          messageId: retryInfo.messageId || `smtp-${fallbackPort}-${Date.now()}`,
         };
       } catch (fallbackErr: any) {
         const errorMsg = fallbackErr?.message || String(fallbackErr);
-        const isAuthError = /invalid.*login|username and password not accepted|eauth|535|badcredentials/i.test(errorMsg) ||
-                            /invalid.*login|username and password not accepted|eauth|535|badcredentials/i.test(primaryMsg);
-        const stage: EmailDiagnosticStage = isAuthError ? 'authentication' : 'provider_send';
-        let clientMsg = isAuthError
-          ? 'Email provider authentication failed. SMTP credentials or application password were rejected.'
-          : 'Email provider rejected the message transmission.';
+        const isAuthError =
+          /invalid.*login|username and password not accepted|eauth|535|badcredentials/i.test(errorMsg) ||
+          /invalid.*login|username and password not accepted|eauth|535|badcredentials/i.test(primaryMsg);
+        const isTimeout =
+          /timeout|etimedout|esocket/i.test(errorMsg) ||
+          /timeout|etimedout|esocket/i.test(primaryMsg);
 
-        if (isAuthError && smtpHost.includes('gmail') && smtpPass.length !== 16) {
-          clientMsg = `Gmail App Password rejected: Google App Passwords must be exactly 16 letters (4 groups of 4 letters, e.g. "abcd efgh ijkl mnop"). The provided password has ${smtpPass.length} characters, so the 4th 4-letter group appears to be missing.`;
+        if (isAuthError) {
+          console.error('[EMAIL API] SMTP authentication failed');
+        } else if (isTimeout) {
+          console.error('[EMAIL API] Connection timeout');
+        } else {
+          console.error(`[EMAIL API] SMTP Provider failure: ${errorMsg}`);
         }
 
-        console.error(`[EMAIL API] [STAGE: ${stage}] SMTP Provider failure:`, errorMsg);
+        const stage: EmailDiagnosticStage = isAuthError ? 'authentication' : 'provider_send';
+        let clientMsg = isAuthError
+          ? 'Email service temporarily unavailable. Mail server credentials were rejected.'
+          : 'Email service temporarily unavailable. Message transmission failed.';
+
+        if (isAuthError && isGmailHost && smtpPass.length !== 16) {
+          clientMsg = `Gmail App Password rejected: Google App Passwords must be exactly 16 letters (e.g. "abcd efgh ijkl mnop"). Current length is ${smtpPass.length} characters.`;
+        }
+
+        console.error(`[EMAIL API] [STAGE: ${stage}] SMTP Final failure: ${errorMsg}`);
 
         throw new EmailDispatchError(
           stage,
-          isAuthError ? 502 : 502,
+          502,
           clientMsg,
-          errorMsg,
+          `Primary (${smtpPort}): ${primaryMsg} | Fallback (${fallbackPort}): ${errorMsg}`,
           this.name
         );
       }
