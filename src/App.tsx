@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
+import { LanguageProvider } from './context/LanguageContext';
 import { ClientRoutes } from './client/routes';
 import { AdminRoutes } from './admin/routes';
 import { ScrollToTop } from './components/common/ScrollToTop';
@@ -14,18 +15,20 @@ export function App() {
       <ThemeProvider>
         <AuthProvider>
           <ToastProvider>
-            <Router>
-              {/* Global centralized scroll position reset on all route changes */}
-              <ScrollToTop />
+            <LanguageProvider>
+              <Router>
+                {/* Global centralized scroll position reset on all route changes */}
+                <ScrollToTop />
 
-              <Routes>
-                {/* Admin Routes Group: /admin/* (Protected by Firebase Auth) */}
-                {AdminRoutes}
+                <Routes>
+                  {/* Admin Routes Group: /admin/* (Protected by Firebase Auth) */}
+                  {AdminRoutes}
 
-                {/* Client Routes Group: /* (Public without login requirement) */}
-                {ClientRoutes}
-              </Routes>
-            </Router>
+                  {/* Client Routes Group: /* (Public without login requirement) */}
+                  {ClientRoutes}
+                </Routes>
+              </Router>
+            </LanguageProvider>
           </ToastProvider>
         </AuthProvider>
       </ThemeProvider>

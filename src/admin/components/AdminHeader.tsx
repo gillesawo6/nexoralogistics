@@ -21,9 +21,10 @@ import { AccountSettingsModal } from './AccountSettingsModal';
 
 interface AdminHeaderProps {
   onToggleSidebar: () => void;
+  isSidebarOpen?: boolean;
 }
 
-export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => {
+export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar, isSidebarOpen = false }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
@@ -91,34 +92,36 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
   const displayName = profile?.displayName || user?.displayName || (user?.email ? user.email.split('@')[0] : 'Operator');
 
   return (
-    <header className="sticky top-0 z-30 bg-white/90 dark:bg-[#070D1D]/90 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-4 sm:px-6 lg:px-8 py-3.5 transition-colors">
-      <div className="flex items-center justify-between gap-4">
+    <header className="sticky top-0 z-30 bg-white/95 dark:bg-[#070D1D]/95 backdrop-blur-xl border-b border-slate-200 dark:border-white/10 px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3.5 transition-colors w-full max-w-full overflow-x-hidden">
+      <div className="flex items-center justify-between gap-2 sm:gap-4 w-full min-w-0">
         {/* Left Side: Mobile Menu Button & Breadcrumb */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button
             onClick={onToggleSidebar}
-            className="p-2 rounded-xl bg-slate-100 dark:bg-white/5 border border-slate-300 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white lg:hidden"
-            aria-label="Toggle Sidebar"
+            aria-expanded={isSidebarOpen}
+            aria-controls="admin-sidebar"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-slate-950 dark:hover:text-white lg:hidden shrink-0 transition-colors cursor-pointer active:scale-95"
+            aria-label={isSidebarOpen ? "Close Admin Menu" : "Open Admin Menu"}
           >
             <Menu className="w-5 h-5" />
           </button>
 
-          <div>
-            <div className="flex items-center gap-2 text-[11px] font-mono-tech text-slate-500 dark:text-gray-400">
-              <span>ADMIN CONSOLE</span>
-              <span>/</span>
-              <span className="text-[#0066FF] dark:text-[#38bdf8] font-bold uppercase">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 text-[10px] sm:text-[11px] font-mono-tech text-slate-500 dark:text-gray-400 truncate">
+              <span className="hidden min-[380px]:inline">ADMIN CONSOLE</span>
+              <span className="hidden min-[380px]:inline">/</span>
+              <span className="text-[#0066FF] dark:text-[#38bdf8] font-bold uppercase truncate">
                 {location.pathname.replace('/admin/', '').split('/')[0] || 'DASHBOARD'}
               </span>
             </div>
-            <h1 className="font-heading font-extrabold text-base sm:text-xl text-slate-950 dark:text-white uppercase tracking-tight leading-none mt-0.5">
+            <h1 className="font-heading font-extrabold text-xs sm:text-base md:text-lg lg:text-xl text-slate-950 dark:text-white uppercase tracking-tight leading-tight mt-0.5 truncate" title={getPageTitle()}>
               {getPageTitle()}
             </h1>
           </div>
         </div>
 
         {/* Right Side: Status, UTC Clock, User Badge, Theme Toggle & Quick Action */}
-        <div className="flex items-center gap-2.5 sm:gap-4">
+        <div className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 shrink-0">
           {/* Live Network Status Indicator */}
           <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-mono-tech text-xs">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -135,7 +138,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
           <Link
             to="/admin/quotes"
             title={`${pendingQuotes} Pending Quotes`}
-            className="relative p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-white/10 transition-colors"
+            className="relative p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-white/10 transition-colors shrink-0"
           >
             <Bell className="w-4 h-4" />
             {pendingQuotes > 0 && (
@@ -148,7 +151,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
             onClick={toggleTheme}
             aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
             title={`Switch to ${isDark ? 'light' : 'dark'} mode`}
-            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-white/10 transition-colors shadow-sm"
+            className="p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-700 dark:text-gray-300 border border-slate-200 dark:border-white/10 transition-colors shadow-xs shrink-0 cursor-pointer"
           >
             {isDark ? (
               <Sun className="w-4 h-4 text-amber-400" />
@@ -159,7 +162,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
 
           {/* User Profile Pill & Quick Sign Out */}
           {user && (
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative shrink-0" ref={dropdownRef}>
               <button
                 onClick={() => setUserDropdownOpen(!userDropdownOpen)}
                 className="flex items-center gap-2 p-1 sm:px-2.5 sm:py-1 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 transition-colors cursor-pointer"
@@ -189,7 +192,7 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
 
               {userDropdownOpen && (
                 <div 
-                  className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/15 p-2 shadow-xl z-50 animate-in fade-in zoom-in-95"
+                  className="absolute right-0 mt-2 w-56 max-w-[calc(100vw-2rem)] rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/15 p-2 shadow-2xl z-50 animate-in fade-in zoom-in-95"
                   onMouseLeave={() => setUserDropdownOpen(false)}
                 >
                   <div className="px-3 py-2 border-b border-slate-100 dark:border-white/10 mb-1">
@@ -227,20 +230,21 @@ export const AdminHeader: React.FC<AdminHeaderProps> = ({ onToggleSidebar }) => 
             </div>
           )}
 
-          {/* New Shipment Button */}
+          {/* New Shipment Button (Hidden on Mobile) */}
           <Link
             to="/admin/shipments/new"
-            className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white font-heading text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-[#0066FF]/25"
+            className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0066FF] hover:bg-[#0052cc] text-white font-heading text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-[#0066FF]/25 shrink-0"
           >
             <Plus className="w-4 h-4" />
-            <span>New Shipment</span>
+            <span className="hidden md:inline">New Shipment</span>
+            <span className="md:hidden">New</span>
           </Link>
 
           {/* Back to Client Site button (compact) */}
           <Link
             to="/"
             title="Go to Public Website"
-            className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-[#0066FF] dark:hover:text-[#38bdf8] transition-colors"
+            className="hidden min-[380px]:flex p-2 sm:p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-gray-300 hover:text-[#0066FF] dark:hover:text-[#38bdf8] transition-colors shrink-0"
           >
             <Globe2 className="w-4 h-4" />
           </Link>

@@ -7,6 +7,7 @@ import { emailService, EmailMessageRecord } from '../services/emailService';
 import { updatePageSeo } from '../services/seoService';
 import { PrintableQuoteDossier } from '../components/quote/PrintableQuoteDossier';
 import { useToast } from '../context/ToastContext';
+import { useLanguage } from '../context/LanguageContext';
 import { LocationPairSelector, LocationData } from '../components/common/LocationSelector';
 import { 
   Calculator, 
@@ -26,11 +27,14 @@ import {
   Package, 
   Layers,
   Printer,
-  Mail
+  Mail,
+  AlertTriangle,
+  AlertCircle
 } from 'lucide-react';
 
 export const QuotePage: React.FC = () => {
   const toast = useToast();
+  const { language } = useLanguage();
   const [searchParams] = useSearchParams();
   const initialService = (searchParams.get('service') as TransportMode) || 'Air Freight';
 
@@ -59,6 +63,7 @@ export const QuotePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedQuote, setSubmittedQuote] = useState<QuoteRequest | null>(null);
   const [submittedEmailRecord, setSubmittedEmailRecord] = useState<EmailMessageRecord | null>(null);
+  const [emailDispatchResult, setEmailDispatchResult] = useState<{ success: boolean; delivered?: boolean; error?: string } | null>(null);
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => {
@@ -103,7 +108,7 @@ export const QuotePage: React.FC = () => {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim() || !email.trim() || !originCity.trim() || !destCity.trim()) {
       toast.warning('Please fill out all required fields: Full Name, Email, Origin City, and Destination City.', 'Missing Information');
@@ -112,7 +117,7 @@ export const QuotePage: React.FC = () => {
 
     setIsSubmitting(true);
 
-    setTimeout(() => {
+    try {
       const newQuote = storageService.createQuote({
         fullName: fullName.trim(),
         companyName: companyName.trim() || 'Private Enterprise',
@@ -141,19 +146,49 @@ export const QuotePage: React.FC = () => {
       });
 
       // Dispatch confirmation email to customer AND instant alert email to company pricing desk
-      const emailRec = emailService.sendQuoteConfirmationToCustomer(newQuote);
+      const emailResult = await emailService.sendQuoteConfirmationToCustomerAsync(newQuote);
       emailService.sendQuoteRequestToCompany(newQuote);
 
-      setSubmittedEmailRecord(emailRec);
+      setSubmittedEmailRecord(emailResult.emailRecord);
+      setEmailDispatchResult(emailResult);
       setSubmittedQuote(newQuote);
       setIsSubmitting(false);
-      toast.success(`Quote request #${newQuote.referenceNumber || newQuote.id} submitted successfully. Confirmation sent to ${newQuote.email}.`, 'Quote Requested');
-    }, 600);
+
+      if (emailResult.success && emailResult.delivered) {
+        if (language === 'fr') {
+          toast.success(
+            "Demande de devis envoyée avec succès ! Nous avons envoyé les détails de votre devis à votre adresse e-mail. Si vous ne voyez pas l'e-mail dans votre boîte de réception, veuillez vérifier votre dossier Spam/Indésirables.",
+            'Devis Envoyé'
+          );
+        } else {
+          toast.success(
+            "Quote request submitted successfully! We've sent your quote details to your email. If you don't see the email in your inbox, please check your Spam/Junk folder.",
+            'Quote Requested'
+          );
+        }
+      } else {
+        if (language === 'fr') {
+          toast.warning(
+            `Demande de devis soumise avec succès (Réf: #${newQuote.referenceNumber || newQuote.id}), mais l'envoi de l'e-mail automatique n'a pas pu aboutir (${emailResult.error || 'service mail indisponible'}). Vous pouvez consulter ou imprimer votre devis directement ci-dessous.`,
+            'Avis Devis'
+          );
+        } else {
+          toast.warning(
+            `Quote request #${newQuote.referenceNumber || newQuote.id} registered successfully, but automated email dispatch could not be completed (${emailResult.error || 'mail server unavailable'}). You can view or print your rate quote below.`,
+            'Quote Registered'
+          );
+        }
+      }
+    } catch (err: any) {
+      setIsSubmitting(false);
+      toast.error('An error occurred while submitting your quote request. Please try again.', 'Submission Error');
+    }
   };
 
   const handleReset = () => {
     setSubmittedQuote(null);
     setSubmittedEmailRecord(null);
+    setEmailDispatchResult(null);
     setFullName('');
     setCompanyName('');
     setEmail('');
@@ -244,6 +279,50 @@ export const QuotePage: React.FC = () => {
                   <strong>Automated Email Dispatched:</strong> A complete rate receipt &amp; corridor breakdown has been automatically sent to <strong>{email}</strong> and our operations desk.
                 </span>
               </div>
+
+              {/* Spam/Junk Folder Notice Card */}
+              {emailDispatchResult && !emailDispatchResult.delivered ? (
+                <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs sm:text-sm font-sans text-left space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                      <AlertCircle className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="font-heading font-black text-xs sm:text-sm uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                        {language === 'fr' ? 'Devis Enregistré dans le Système' : 'Quote Registered in Operations System'}
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-normal">
+                        {language === 'fr'
+                          ? `Votre demande de devis #${submittedQuote.referenceNumber || submittedQuote.id} a été enregistrée avec succès. Notez que la passerelle d'envoi automatique d'e-mail a retourné une notification (${emailDispatchResult.error || 'service en cours de configuration'}). Vous pouvez consulter et imprimer votre devis directement ci-dessous.`
+                          : `Your quote request #${submittedQuote.referenceNumber || submittedQuote.id} was recorded successfully in our operations desk. Automated email transmission to ${email} returned a notice (${emailDispatchResult.error || 'server mail credentials pending'}). You can access and print your rate proposal directly below.`}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 sm:p-5 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-amber-900 dark:text-amber-200 text-xs sm:text-sm font-sans text-left space-y-2">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5">
+                      <AlertTriangle className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="font-heading font-black text-xs sm:text-sm uppercase tracking-wide text-amber-800 dark:text-amber-300">
+                        {language === 'fr' ? 'Vérifiez votre dossier Spam / Indésirables' : 'Check your Spam / Junk folder'}
+                      </div>
+                      <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
+                        {language === 'fr'
+                          ? "Demande de devis envoyée avec succès ! Nous avons envoyé les détails de votre devis à votre adresse e-mail. Si vous ne voyez pas l'e-mail dans votre boîte de réception, veuillez vérifier votre dossier Spam/Indésirables."
+                          : "Quote request submitted successfully! We've sent your quote details to your email. If you don't see the email in your inbox, please check your Spam/Junk folder."}
+                      </p>
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-mono-tech pt-1">
+                        {language === 'fr'
+                          ? 'Astuce : Pour garantir la bonne réception de nos propositions tarifaires et mises à jour de transit, ajoutez notre domaine à votre liste d\'expéditeurs autorisés.'
+                          : 'Tip: Add our operations email to your safe sender whitelist to ensure immediate delivery of your formal itemized tariffs and route telemetry.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                 <Link

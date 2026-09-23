@@ -598,6 +598,136 @@ ${company.companyName}
   },
 
   /**
+   * Dispatches initial receipt confirmation to the customer and awaits verification from the backend
+   */
+  async sendQuoteConfirmationToCustomerAsync(quote: QuoteRequest): Promise<{
+    success: boolean;
+    delivered?: boolean;
+    error?: string;
+    emailRecord: EmailMessageRecord;
+  }> {
+    const company = storageService.getCompanyInfo();
+    const ref = quote.referenceNumber || quote.id.toUpperCase();
+    const quoteUrl = this.getQuoteCustomerUrl(quote);
+    const subject = `Quote Request Confirmation (Ref: ${ref}) - ${company.tradeName}`;
+
+    const bodyHtml = `
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+        <div style="background: #0B1528; padding: 24px 28px; color: #ffffff; border-bottom: 3px solid #0066FF;">
+          <div style="font-size: 11px; font-family: monospace; color: #38bdf8; letter-spacing: 1.5px; text-transform: uppercase;">
+            ${company.tradeName} Freight Services
+          </div>
+          <h1 style="margin: 6px 0 0 0; font-size: 20px; font-weight: 700; color: #ffffff;">
+            Quote Request Received
+          </h1>
+          <div style="font-size: 12px; color: #94a3b8; font-family: monospace; margin-top: 4px;">
+            Reference ID: #${ref}
+          </div>
+        </div>
+
+        <div style="padding: 28px;">
+          <p style="font-size: 14px; color: #334155; line-height: 1.6; margin-top: 0;">
+            Hello <strong>${quote.fullName}</strong>,
+          </p>
+          <p style="font-size: 14px; color: #334155; line-height: 1.6;">
+            Thank you for requesting a freight rate proposal. Our team is calculating the optimal routing and tariff for your <strong>${quote.service}</strong> shipment from <strong>${quote.originCity}</strong> to <strong>${quote.destCity}</strong>.
+          </p>
+
+          <div style="background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; padding: 16px; margin: 18px 0; font-size: 13px; color: #1e293b;">
+            <div><strong>Origin:</strong> ${quote.originCity}, ${quote.originCountry}</div>
+            <div style="margin-top: 4px;"><strong>Destination:</strong> ${quote.destCity}, ${quote.destCountry}</div>
+            <div style="margin-top: 4px;"><strong>Cargo:</strong> ${quote.cargoType || 'General Freight'} (${quote.weightKg} kg)</div>
+            ${quote.estimatedCostUsd ? `<div style="margin-top: 4px; color: #0066FF;"><strong>Estimated Range:</strong> $${quote.estimatedCostUsd.toLocaleString()} USD</div>` : ''}
+          </div>
+
+          <div style="text-align: center; margin: 24px 0;">
+            <a href="${quoteUrl}" style="display: inline-block; background: #0066FF; color: #ffffff; padding: 12px 28px; border-radius: 8px; font-weight: 600; font-size: 13px; text-decoration: none;">
+              Check Quote Status Online
+            </a>
+          </div>
+
+          <p style="font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 0;">
+            You will receive a formal itemized pricing proposal once reviewed by our operations desk.
+          </p>
+        </div>
+
+        <div style="background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 18px 28px; font-size: 11px; color: #94a3b8; text-align: center;">
+          <div>${company.companyName} • ${company.hqAddress}</div>
+          <div style="margin-top: 4px;">Phone: ${company.primaryPhone} | Email: ${company.quotesEmail || company.primaryEmail}</div>
+        </div>
+      </div>
+    `;
+
+    const bodyText = `
+Quote Request Confirmation (Ref: #${ref})
+Hello ${quote.fullName},
+
+Thank you for your freight quote request for ${quote.service} from ${quote.originCity} to ${quote.destCity}.
+Weight: ${quote.weightKg} kg
+
+You can check the real-time status of your quote online:
+${quoteUrl}
+
+If you have questions, contact us at ${company.primaryPhone} or ${company.quotesEmail || company.primaryEmail}.
+
+Thank you,
+${company.companyName}
+    `.trim();
+
+    const record = this.logEmail({
+      recipientEmail: quote.email,
+      recipientName: quote.fullName,
+      fromEmail: company.primaryEmail,
+      fromName: `${company.tradeName || company.companyName} Pricing`,
+      subject,
+      bodyHtml,
+      bodyText,
+      type: 'quote_request_receipt',
+      quoteRef: ref,
+    });
+
+    try {
+      const primaryCompanyEmail = company.primaryEmail || 'gillesawo6@gmail.com';
+      const sendResult = await this.sendEmail({
+        to: quote.email,
+        toName: quote.fullName,
+        fromName: `${company.tradeName || company.companyName} Pricing`,
+        replyTo: company.quotesEmail || primaryCompanyEmail,
+        subject,
+        html: bodyHtml,
+        text: bodyText,
+        type: 'quote_request_receipt',
+        quoteRef: ref,
+      });
+
+      if (sendResult.success && sendResult.delivered) {
+        this.updateEmailDispatchStatus(record.id, 'dispatched');
+        return {
+          success: true,
+          delivered: true,
+          emailRecord: { ...record, dispatchStatus: 'dispatched' },
+        };
+      } else {
+        this.updateEmailDispatchStatus(record.id, 'failed');
+        return {
+          success: false,
+          delivered: false,
+          error: sendResult.error || 'Email dispatch failed on mail server',
+          emailRecord: { ...record, dispatchStatus: 'failed' },
+        };
+      }
+    } catch (err: any) {
+      this.updateEmailDispatchStatus(record.id, 'failed');
+      return {
+        success: false,
+        delivered: false,
+        error: err?.message || 'Network error reaching email dispatch server',
+        emailRecord: { ...record, dispatchStatus: 'failed' },
+      };
+    }
+  },
+
+  /**
    * Dispatches official quote pricing proposal email to the customer
    */
   sendOfficialQuoteToCustomer(quote: QuoteRequest, customNote?: string): EmailMessageRecord {

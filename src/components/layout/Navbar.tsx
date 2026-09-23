@@ -8,15 +8,18 @@ import {
   ArrowRight, 
   Lock,
   Sun,
-  Moon
+  Moon,
+  Globe
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 export const Navbar: React.FC = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { isDark, toggleTheme } = useTheme();
+  const { language, toggleLanguage, setLanguage } = useLanguage();
 
   useEffect(() => {
     let ticking = false;
@@ -164,6 +167,19 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Header Action Buttons (Large Screens >= 1024px) */}
           <div className="hidden lg:flex items-center gap-2 xl:gap-3 shrink-0">
+            {/* Language Switcher (EN / FR) */}
+            <button
+              onClick={toggleLanguage}
+              title={language === 'en' ? 'Passer en Français' : 'Switch to English'}
+              className="px-2.5 py-2 2xl:py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 text-slate-800 dark:text-gray-200 border border-slate-200 dark:border-white/10 font-mono-tech text-[11px] xl:text-xs font-bold uppercase transition-colors cursor-pointer shrink-0 flex items-center gap-1.5 shadow-xs"
+              aria-label="Toggle language between English and French"
+            >
+              <Globe className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#38bdf8]" />
+              <span className={language === 'en' ? 'text-[#0066FF] dark:text-[#38bdf8] font-black' : 'text-slate-400 dark:text-gray-500'}>EN</span>
+              <span className="text-slate-300 dark:text-gray-600">/</span>
+              <span className={language === 'fr' ? 'text-[#0066FF] dark:text-[#38bdf8] font-black' : 'text-slate-400 dark:text-gray-500'}>FR</span>
+            </button>
+
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
@@ -302,8 +318,38 @@ export const Navbar: React.FC = () => {
               </div>
             </div>
 
+            {/* Mobile Language Switcher Row */}
+            <div className="pt-3 border-t border-slate-200 dark:border-white/10 flex items-center justify-between text-xs font-mono-tech">
+              <span className="text-slate-500 dark:text-gray-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                <Globe className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#38bdf8]" />
+                <span>Langue / Language:</span>
+              </span>
+              <div className="flex items-center rounded-xl bg-slate-100 dark:bg-white/5 p-1 border border-slate-200 dark:border-white/10">
+                <button
+                  onClick={() => setLanguage('en')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    language === 'en'
+                      ? 'bg-[#0066FF] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  EN
+                </button>
+                <button
+                  onClick={() => setLanguage('fr')}
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    language === 'fr'
+                      ? 'bg-[#0066FF] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  FR
+                </button>
+              </div>
+            </div>
+
             {/* Mobile CTAs & Admin link */}
-            <div className="pt-4 sm:pt-6 border-t border-slate-200 dark:border-white/10 space-y-2.5 mt-4">
+            <div className="pt-3 sm:pt-4 space-y-2.5">
               <Link
                 to="/quote"
                 onClick={() => setMobileMenuOpen(false)}

@@ -74,29 +74,34 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
 
   return (
     <>
-      {/* Mobile Backdrop */}
-      {isOpen && (
-        <div
-          onClick={onClose}
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden"
-        />
-      )}
+      {/* Mobile Backdrop with smooth fade transition */}
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        className={`fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-40 lg:hidden transition-opacity duration-300 ${
+          isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+      />
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed top-0 bottom-0 left-0 z-50 w-72 bg-white dark:bg-[#070D1D] border-r border-slate-200 dark:border-white/10 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 ${
-          isOpen ? 'translate-x-0' : '-translate-x-full'
+        id="admin-sidebar"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Admin Navigation Menu"
+        className={`fixed top-0 bottom-0 left-0 z-50 w-[84vw] max-w-[288px] lg:w-72 bg-white dark:bg-[#070D1D] border-r border-slate-200 dark:border-white/10 flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 overscroll-contain ${
+          isOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full'
         }`}
       >
         {/* Brand Header */}
-        <div className="p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-white/10 flex items-center justify-between">
           <Link 
             to="/admin/dashboard" 
             onClick={onClose}
-            className="flex items-center gap-3 group"
+            className="flex items-center gap-3 group min-w-0"
           >
             {/* Hexagon Mark */}
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0066FF] to-[#0A255C] p-[1.5px] shadow-md shadow-[#0066FF]/30 transition-transform group-hover:scale-105">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0066FF] to-[#0A255C] p-[1.5px] shadow-md shadow-[#0066FF]/30 transition-transform group-hover:scale-105 shrink-0">
               <div className="w-full h-full bg-[#0066FF] dark:bg-[#070D1D] rounded-[10px] flex items-center justify-center">
                 <span className="font-heading font-extrabold text-lg text-white">
                   NX<span className="text-amber-300 dark:text-[#38bdf8]">.</span>
@@ -104,12 +109,12 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
               </div>
             </div>
 
-            <div className="flex flex-col">
-              <span className="font-heading font-black text-lg tracking-[0.16em] text-slate-950 dark:text-white uppercase leading-none">
+            <div className="flex flex-col min-w-0">
+              <span className="font-heading font-black text-lg tracking-[0.16em] text-slate-950 dark:text-white uppercase leading-none truncate">
                 NEXORA
               </span>
-              <span className="font-mono-tech text-[10px] tracking-widest text-[#0066FF] dark:text-[#38bdf8] font-bold uppercase mt-1 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3 text-emerald-500" />
+              <span className="font-mono-tech text-[10px] tracking-widest text-[#0066FF] dark:text-[#38bdf8] font-bold uppercase mt-1 flex items-center gap-1 truncate">
+                <ShieldCheck className="w-3 h-3 text-emerald-500 shrink-0" />
                 ADMIN CONSOLE
               </span>
             </div>
@@ -118,15 +123,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({ isOpen, onClose }) =
           {/* Close button for mobile */}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-slate-900 dark:text-gray-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 lg:hidden"
-            aria-label="Close Sidebar"
+            className="p-2 rounded-xl text-slate-600 hover:text-slate-950 dark:text-gray-400 dark:hover:text-white bg-slate-100 hover:bg-slate-200 dark:bg-white/5 dark:hover:bg-white/10 lg:hidden transition-colors cursor-pointer shrink-0"
+            aria-label="Close Navigation Menu"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Scrollable Navigation Body */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-white/10">
+        <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-4 space-y-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-white/10">
           {/* Main Group */}
           <div>
             <div className="px-3 pb-2 text-[10px] font-mono-tech tracking-widest uppercase text-slate-400 dark:text-gray-500 font-bold">
