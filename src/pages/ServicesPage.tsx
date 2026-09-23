@@ -213,3 +213,5 @@ export const ServicesPage: React.FC = () => {
     </div>
   );
 };
+
+export default ServicesPage;

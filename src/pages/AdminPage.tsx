@@ -842,10 +842,10 @@ export const AdminPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-gray-400 uppercase mb-1">Origin City &amp; Country *</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-gray-400 uppercase mb-1">Origin Location (City &amp; Country) *</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <input
                         type="text"
                         required
@@ -865,8 +865,8 @@ export const AdminPage: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-gray-400 uppercase mb-1">Destination City &amp; Country *</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-gray-400 uppercase mb-1">Destination Location (City &amp; Country) *</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       <input
                         type="text"
                         required

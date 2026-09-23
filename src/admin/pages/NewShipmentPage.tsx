@@ -1456,20 +1456,20 @@ export const NewShipmentPage: React.FC = () => {
               <span className="text-[11px] text-slate-400 font-normal">Section 04/06</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-6">
               {/* Origin */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-white/5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#0066FF] dark:text-[#38bdf8] uppercase flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-[#0066FF]" />
-                    <span>Origin Node (Country &amp; City)</span>
+              <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-white/5 space-y-3.5">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/5">
+                  <span className="font-bold text-[#0066FF] dark:text-[#38bdf8] uppercase flex items-center gap-1.5 text-xs">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#0066FF]" />
+                    <span>Origin Node (Country &amp; City Departure Hub)</span>
                   </span>
-                  <span className="text-[10px] bg-blue-500/10 text-[#0066FF] px-2 py-0.5 rounded font-bold">
+                  <span className="text-[10px] bg-blue-500/10 text-[#0066FF] px-2.5 py-0.5 rounded-md font-bold font-mono">
                     {originCode || 'ORG'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
                   <div>
                     <CountrySelect
                       label="Origin Country"
@@ -1573,18 +1573,18 @@ export const NewShipmentPage: React.FC = () => {
               </div>
 
               {/* Destination */}
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-white/5 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-purple-600 dark:text-purple-400 uppercase flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-purple-500" />
-                    <span>Destination Node (Country &amp; City)</span>
+              <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-200 dark:border-white/5 space-y-3.5">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-200/60 dark:border-white/5">
+                  <span className="font-bold text-purple-600 dark:text-purple-400 uppercase flex items-center gap-1.5 text-xs">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                    <span>Destination Node (Country &amp; City Arrival Hub)</span>
                   </span>
-                  <span className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2 py-0.5 rounded font-bold">
+                  <span className="text-[10px] bg-purple-500/10 text-purple-600 dark:text-purple-400 px-2.5 py-0.5 rounded-md font-bold font-mono">
                     {destCode || 'DST'}
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
                   <div>
                     <CountrySelect
                       label="Destination Country"

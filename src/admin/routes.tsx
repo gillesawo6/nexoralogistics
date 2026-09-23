@@ -1,28 +1,30 @@
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { Route, Navigate } from 'react-router-dom';
 import { AdminLayout } from './layouts/AdminLayout';
 import { AdminGuard } from './components/AdminGuard';
 import { RouteLoadingFallback } from '../components/common/RouteLoadingFallback';
+import { lazyWithRetry } from '../utils/lazyWithRetry';
 
-// Route-level code splitting for all admin pages
-const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage').then(m => ({ default: m.AdminLoginPage })));
-const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
-const ShipmentsPage = lazy(() => import('./pages/ShipmentsPage').then(m => ({ default: m.ShipmentsPage })));
-const NewShipmentPage = lazy(() => import('./pages/NewShipmentPage').then(m => ({ default: m.NewShipmentPage })));
-const ShipmentDetailPage = lazy(() => import('./pages/ShipmentDetailPage').then(m => ({ default: m.ShipmentDetailPage })));
-const QuotesAdminPage = lazy(() => import('./pages/QuotesAdminPage').then(m => ({ default: m.QuotesAdminPage })));
-const MessagesAdminPage = lazy(() => import('./pages/MessagesAdminPage').then(m => ({ default: m.MessagesAdminPage })));
-const ServicesAdminPage = lazy(() => import('./pages/ServicesAdminPage').then(m => ({ default: m.ServicesAdminPage })));
-const IndustriesAdminPage = lazy(() => import('./pages/IndustriesAdminPage').then(m => ({ default: m.IndustriesAdminPage })));
-const BlogAdminPage = lazy(() => import('./pages/BlogAdminPage').then(m => ({ default: m.BlogAdminPage })));
-const CaseStudiesAdminPage = lazy(() => import('./pages/CaseStudiesAdminPage').then(m => ({ default: m.CaseStudiesAdminPage })));
-const TestimonialsAdminPage = lazy(() => import('./pages/TestimonialsAdminPage').then(m => ({ default: m.TestimonialsAdminPage })));
-const FaqsAdminPage = lazy(() => import('./pages/FaqsAdminPage').then(m => ({ default: m.FaqsAdminPage })));
-const LocationsAdminPage = lazy(() => import('./pages/LocationsAdminPage').then(m => ({ default: m.LocationsAdminPage })));
-const UsersAdminPage = lazy(() => import('./pages/UsersAdminPage').then(m => ({ default: m.UsersAdminPage })));
-const CompanyInfoAdminPage = lazy(() => import('./pages/CompanyInfoAdminPage').then(m => ({ default: m.CompanyInfoAdminPage })));
-const AdminDocsPage = lazy(() => import('./pages/AdminDocsPage').then(m => ({ default: m.AdminDocsPage })));
-const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage').then(m => ({ default: m.UnauthorizedPage })));
+// Route-level code splitting with auto-retry for all admin pages
+const AdminLoginPage = lazyWithRetry(() => import('./pages/AdminLoginPage'), 'AdminLoginPage');
+const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'), 'DashboardPage');
+const ShipmentsPage = lazyWithRetry(() => import('./pages/ShipmentsPage'), 'ShipmentsPage');
+const NewShipmentPage = lazyWithRetry(() => import('./pages/NewShipmentPage'), 'NewShipmentPage');
+const ShipmentDetailPage = lazyWithRetry(() => import('./pages/ShipmentDetailPage'), 'ShipmentDetailPage');
+const QuotesAdminPage = lazyWithRetry(() => import('./pages/QuotesAdminPage'), 'QuotesAdminPage');
+const MessagesAdminPage = lazyWithRetry(() => import('./pages/MessagesAdminPage'), 'MessagesAdminPage');
+const ServicesAdminPage = lazyWithRetry(() => import('./pages/ServicesAdminPage'), 'ServicesAdminPage');
+const IndustriesAdminPage = lazyWithRetry(() => import('./pages/IndustriesAdminPage'), 'IndustriesAdminPage');
+const BlogAdminPage = lazyWithRetry(() => import('./pages/BlogAdminPage'), 'BlogAdminPage');
+const CaseStudiesAdminPage = lazyWithRetry(() => import('./pages/CaseStudiesAdminPage'), 'CaseStudiesAdminPage');
+const TestimonialsAdminPage = lazyWithRetry(() => import('./pages/TestimonialsAdminPage'), 'TestimonialsAdminPage');
+const FaqsAdminPage = lazyWithRetry(() => import('./pages/FaqsAdminPage'), 'FaqsAdminPage');
+const LocationsAdminPage = lazyWithRetry(() => import('./pages/LocationsAdminPage'), 'LocationsAdminPage');
+const UsersAdminPage = lazyWithRetry(() => import('./pages/UsersAdminPage'), 'UsersAdminPage');
+const CompanyInfoAdminPage = lazyWithRetry(() => import('./pages/CompanyInfoAdminPage'), 'CompanyInfoAdminPage');
+const AdminDocsPage = lazyWithRetry(() => import('./pages/AdminDocsPage'), 'AdminDocsPage');
+const UnauthorizedPage = lazyWithRetry(() => import('../pages/UnauthorizedPage'), 'UnauthorizedPage');
+
 
 const withAdminSuspense = (Component: React.ReactNode) => (
   <Suspense fallback={<RouteLoadingFallback />}>{Component}</Suspense>

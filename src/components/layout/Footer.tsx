@@ -82,14 +82,14 @@ export const Footer: React.FC = () => {
   return (
     <footer className="relative bg-slate-900 text-white border-t border-slate-800 dark:border-white/10 pt-16 pb-12 overflow-hidden transition-colors duration-200">
       {/* Live World Clocks Telemetry Ticker Bar */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-16 relative z-10">
-        <div className="bg-[#070D1D] border border-white/10 rounded-2xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 font-mono-tech text-xs shadow-lg">
-          <div className="flex items-center gap-2 text-[#38bdf8] font-bold">
-            <Clock className="w-4 h-4 animate-spin text-[#38bdf8]" style={{ animationDuration: '10s' }} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 sm:mb-16 relative z-10">
+        <div className="bg-[#070D1D] border border-white/10 rounded-2xl p-3.5 sm:p-5 flex flex-wrap items-center justify-between gap-3 sm:gap-4 font-mono-tech text-xs shadow-lg">
+          <div className="flex items-center gap-2 text-[#38bdf8] font-bold text-[11px] sm:text-xs shrink-0">
+            <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-[#38bdf8]" style={{ animationDuration: '10s' }} />
             <span>GLOBAL DESK CLOCKS (LIVE):</span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-6 text-gray-300">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-6 text-gray-300 text-[11px] sm:text-xs">
             <div>
               <span className="text-gray-500">RTM (HQ):</span>{' '}
               <span className="text-white font-bold">{worldTimes.rotterdam || '12:00:00'}</span>
@@ -293,10 +293,10 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* Bottom Bar: Certifications & Legal */}
-        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-6 text-xs font-mono-tech text-gray-500">
-          <div className="flex flex-wrap items-center gap-4">
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 sm:gap-6 text-[11px] sm:text-xs font-mono-tech text-gray-500 text-center sm:text-left">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 sm:gap-4">
             <span>© {new Date().getFullYear()} {companyInfo.companyName || 'NEXORA LOGISTICS GLOBAL INC.'}</span>
-            <span>•</span>
+            <span className="hidden min-[400px]:inline">•</span>
             <Link to="/privacy" className="hover:text-gray-300 transition-colors">
               Privacy Policy
             </Link>
@@ -306,7 +306,7 @@ export const Footer: React.FC = () => {
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 sm:gap-3">
             <span className="flex items-center gap-1 text-emerald-400 font-bold">
               <ShieldCheck className="w-3.5 h-3.5" /> {companyInfo.iataCode ? `IATA ${companyInfo.iataCode}` : 'ISO 9001 / IATA / AEO'}
             </span>

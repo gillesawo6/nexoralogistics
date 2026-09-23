@@ -1,27 +1,28 @@
-import React, { lazy, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { Route } from 'react-router-dom';
 import { ClientLayout } from './layouts/ClientLayout';
 import { HomePage } from '../pages/HomePage';
+import { ServicesPage } from '../pages/ServicesPage';
 import { RouteLoadingFallback } from '../components/common/RouteLoadingFallback';
+import { lazyWithRetry } from '../utils/lazyWithRetry';
 
-// Route-level code splitting for secondary client pages
-const ServicesPage = lazy(() => import('../pages/ServicesPage').then(m => ({ default: m.ServicesPage })));
-const ServiceDetailPage = lazy(() => import('../pages/ServiceDetailPage').then(m => ({ default: m.ServiceDetailPage })));
-const IndustriesPage = lazy(() => import('../pages/IndustriesPage').then(m => ({ default: m.IndustriesPage })));
-const TechnologyPage = lazy(() => import('../pages/TechnologyPage').then(m => ({ default: m.TechnologyPage })));
-const TrackingPage = lazy(() => import('../pages/TrackingPage').then(m => ({ default: m.TrackingPage })));
-const QuotePage = lazy(() => import('../pages/QuotePage').then(m => ({ default: m.QuotePage })));
-const ViewQuotePage = lazy(() => import('../pages/ViewQuotePage').then(m => ({ default: m.ViewQuotePage })));
-const CaseStudiesPage = lazy(() => import('../pages/CaseStudiesPage').then(m => ({ default: m.CaseStudiesPage })));
-const BlogPage = lazy(() => import('../pages/BlogPage').then(m => ({ default: m.BlogPage })));
-const BlogPostPage = lazy(() => import('../pages/BlogPostPage').then(m => ({ default: m.BlogPostPage })));
-const AboutPage = lazy(() => import('../pages/AboutPage').then(m => ({ default: m.AboutPage })));
-const FaqPage = lazy(() => import('../pages/FaqPage').then(m => ({ default: m.FaqPage })));
-const ContactPage = lazy(() => import('../pages/ContactPage').then(m => ({ default: m.ContactPage })));
-const PrivacyPage = lazy(() => import('../pages/PrivacyPage').then(m => ({ default: m.PrivacyPage })));
-const TermsPage = lazy(() => import('../pages/TermsPage').then(m => ({ default: m.TermsPage })));
-const UnauthorizedPage = lazy(() => import('../pages/UnauthorizedPage').then(m => ({ default: m.UnauthorizedPage })));
-const NotFoundPage = lazy(() => import('../pages/NotFoundPage').then(m => ({ default: m.NotFoundPage })));
+// Resilient route-level code splitting with auto-retry for secondary client pages
+const ServiceDetailPage = lazyWithRetry(() => import('../pages/ServiceDetailPage'), 'ServiceDetailPage');
+const IndustriesPage = lazyWithRetry(() => import('../pages/IndustriesPage'), 'IndustriesPage');
+const TechnologyPage = lazyWithRetry(() => import('../pages/TechnologyPage'), 'TechnologyPage');
+const TrackingPage = lazyWithRetry(() => import('../pages/TrackingPage'), 'TrackingPage');
+const QuotePage = lazyWithRetry(() => import('../pages/QuotePage'), 'QuotePage');
+const ViewQuotePage = lazyWithRetry(() => import('../pages/ViewQuotePage'), 'ViewQuotePage');
+const CaseStudiesPage = lazyWithRetry(() => import('../pages/CaseStudiesPage'), 'CaseStudiesPage');
+const BlogPage = lazyWithRetry(() => import('../pages/BlogPage'), 'BlogPage');
+const BlogPostPage = lazyWithRetry(() => import('../pages/BlogPostPage'), 'BlogPostPage');
+const AboutPage = lazyWithRetry(() => import('../pages/AboutPage'), 'AboutPage');
+const FaqPage = lazyWithRetry(() => import('../pages/FaqPage'), 'FaqPage');
+const ContactPage = lazyWithRetry(() => import('../pages/ContactPage'), 'ContactPage');
+const PrivacyPage = lazyWithRetry(() => import('../pages/PrivacyPage'), 'PrivacyPage');
+const TermsPage = lazyWithRetry(() => import('../pages/TermsPage'), 'TermsPage');
+const UnauthorizedPage = lazyWithRetry(() => import('../pages/UnauthorizedPage'), 'UnauthorizedPage');
+const NotFoundPage = lazyWithRetry(() => import('../pages/NotFoundPage'), 'NotFoundPage');
 
 const withSuspense = (Component: React.ReactNode) => (
   <Suspense fallback={<RouteLoadingFallback />}>{Component}</Suspense>
@@ -30,8 +31,9 @@ const withSuspense = (Component: React.ReactNode) => (
 export const ClientRoutes = (
   <Route element={<ClientLayout />}>
     <Route index element={<HomePage />} />
-    <Route path="services" element={withSuspense(<ServicesPage />)} />
+    <Route path="services" element={<ServicesPage />} />
     <Route path="services/:serviceId" element={withSuspense(<ServiceDetailPage />)} />
+
     <Route path="industries" element={withSuspense(<IndustriesPage />)} />
     <Route path="technology" element={withSuspense(<TechnologyPage />)} />
     <Route path="tracking" element={withSuspense(<TrackingPage />)} />

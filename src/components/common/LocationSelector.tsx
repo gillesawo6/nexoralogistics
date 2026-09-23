@@ -97,8 +97,8 @@ export const SingleLocationSelector: React.FC<SingleLocationSelectorProps> = ({
   };
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className={`space-y-3.5 ${className}`}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
         <CountrySelect
           id={`${idPrefix}-country`}
           label={countryLabel}
@@ -131,7 +131,7 @@ export const SingleLocationSelector: React.FC<SingleLocationSelectorProps> = ({
             onChange={handleAddressChange}
             disabled={disabled}
             placeholder="e.g. Wilhelminakade 902, Terminal Berth 4"
-            className="w-full px-3.5 py-2 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-300 dark:border-white/15 text-slate-950 dark:text-white font-mono-tech text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0066FF]"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-[#0D1527] border border-slate-300 dark:border-white/15 text-slate-950 dark:text-white font-mono-tech text-xs placeholder:text-slate-400 focus:outline-none focus:border-[#0066FF]"
           />
         </div>
       )}
@@ -248,15 +248,22 @@ export const LocationPairSelector: React.FC<LocationPairSelectorProps> = ({
         </div>
       )}
 
-      {/* Main Selector Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
-        {/* Origin Box */}
-        <div className="lg:col-span-5 p-4 rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/10 shadow-xs">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-white/5">
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-            <span className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
-              Origin Location & Port
-            </span>
+      {/* Main Location Selector: Stacked Full-Width Origin & Destination Cards */}
+      <div className="space-y-4">
+        {/* Origin Logistics Box */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/10 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+              <span className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+                Origin Location &amp; Departure Node
+              </span>
+            </div>
+            {origin.country && (
+              <span className="text-[10px] font-mono-tech uppercase font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                Departure Corridor
+              </span>
+            )}
           </div>
 
           <SingleLocationSelector
@@ -272,27 +279,36 @@ export const LocationPairSelector: React.FC<LocationPairSelectorProps> = ({
           />
         </div>
 
-        {/* Swap Button (Centrally positioned) */}
-        <div className="lg:col-span-2 flex justify-center py-1 lg:py-0">
+        {/* Direction Swap Connector Bar */}
+        <div className="flex items-center justify-between px-1">
+          <div className="h-px flex-1 border-t border-dashed border-slate-200 dark:border-white/10" />
           <button
             type="button"
             onClick={handleSwap}
             disabled={disabled}
-            className="flex items-center gap-2 px-4 py-2 lg:p-3 rounded-2xl bg-slate-100 hover:bg-[#0066FF] text-slate-700 hover:text-white dark:bg-white/5 dark:hover:bg-[#0066FF] dark:text-gray-300 border border-slate-200 dark:border-white/10 shadow-xs hover:shadow-md transition-all duration-200 group cursor-pointer text-xs font-mono-tech uppercase font-bold touch-manipulation"
+            className="mx-3 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-[#0066FF] hover:text-white dark:bg-white/5 dark:hover:bg-[#0066FF] text-slate-700 hover:text-white dark:text-gray-300 dark:hover:text-white border border-slate-200 dark:border-white/10 shadow-xs hover:shadow-md transition-all duration-200 group cursor-pointer text-xs font-mono-tech uppercase font-bold touch-manipulation flex items-center gap-2 shrink-0 active:scale-95"
             title="Swap Origin and Destination"
           >
-            <ArrowRightLeft className="w-4 h-4 transition-transform group-hover:rotate-180 duration-300 shrink-0" />
-            <span className="inline-block lg:hidden text-[11px]">Swap Route</span>
+            <ArrowRightLeft className="w-3.5 h-3.5 text-[#0066FF] dark:text-[#38bdf8] group-hover:text-white transition-transform group-hover:rotate-180 duration-300 shrink-0" />
+            <span>Swap Route Direction</span>
           </button>
+          <div className="h-px flex-1 border-t border-dashed border-slate-200 dark:border-white/10" />
         </div>
 
-        {/* Destination Box */}
-        <div className="lg:col-span-5 p-4 rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/10 shadow-xs">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b border-slate-100 dark:border-white/5">
-            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
-            <span className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
-              Destination Location & Port
-            </span>
+        {/* Destination Logistics Box */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/10 shadow-xs space-y-3.5">
+          <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-white/5">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-blue-500/20" />
+              <span className="font-heading font-black text-xs uppercase tracking-wider text-slate-900 dark:text-white">
+                Destination Location &amp; Arrival Node
+              </span>
+            </div>
+            {destination.country && (
+              <span className="text-[10px] font-mono-tech uppercase font-bold text-[#0066FF] dark:text-[#38bdf8] bg-blue-500/10 px-2 py-0.5 rounded-md">
+                Arrival Corridor
+              </span>
+            )}
           </div>
 
           <SingleLocationSelector

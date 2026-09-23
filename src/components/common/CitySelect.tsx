@@ -133,7 +133,7 @@ export const CitySelect: React.FC<CitySelectProps> = ({
         id={id}
         type="button"
         disabled={disabled || !hasCountry}
-        title={!hasCountry ? 'Requires Country first' : undefined}
+        title={!hasCountry ? 'Requires Country first' : (value || placeholder)}
         onClick={() => hasCountry && setIsOpen(!isOpen)}
         className={`w-full min-h-[44px] px-3.5 py-2.5 rounded-xl text-left font-mono-tech text-xs transition-all flex items-center justify-between gap-2 border touch-manipulation ${
           disabled || !hasCountry
@@ -177,7 +177,7 @@ export const CitySelect: React.FC<CitySelectProps> = ({
 
       {/* Popover Dropdown */}
       {isOpen && hasCountry && (
-        <div className="absolute z-50 left-0 right-0 mt-1.5 rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/15 shadow-2xl overflow-hidden font-mono-tech text-xs backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100">
+        <div className="absolute z-50 left-0 right-0 mt-1.5 min-w-[280px] sm:min-w-[320px] max-w-full rounded-2xl bg-white dark:bg-[#070D1D] border border-slate-200 dark:border-white/15 shadow-2xl overflow-hidden font-mono-tech text-xs backdrop-blur-xl animate-in fade-in zoom-in-95 duration-100">
           {/* Search Input */}
           <div className="p-2.5 border-b border-slate-100 dark:border-white/10 bg-slate-50/70 dark:bg-[#0B1528]/80">
             <div className="relative">
