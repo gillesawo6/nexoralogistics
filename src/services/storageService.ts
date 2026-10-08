@@ -27,6 +27,7 @@ import {
   INITIAL_SHIPMENTS, 
   BLOG_POSTS_DATA 
 } from '../data/mockData';
+import { healShipmentMilestones } from '../utils/geoUtils';
 
 const SHIPMENTS_KEY = 'nexora_shipments_v1';
 const QUOTES_KEY = 'nexora_quotes_v1';
@@ -238,10 +239,10 @@ async function seedInitialFirestoreData() {
   try {
     const shipmentsColl = collection(db, 'shipments');
     const snap = await getDocs(shipmentsColl);
-    if (snap.empty) {
-      console.log('Seeding initial shipments into Firestore...');
-      for (const s of INITIAL_SHIPMENTS) {
-        await setDoc(doc(db, 'shipments', s.id), cleanForFirestore(s));
+    const existingDocIds = new Set(snap.docs.map((d) => d.id));
+    for (const s of INITIAL_SHIPMENTS) {
+      if (!existingDocIds.has(s.id)) {
+        await setDoc(doc(db, 'shipments', s.id), cleanForFirestore(s), { merge: true });
       }
     }
   } catch (err) {
@@ -251,10 +252,11 @@ async function seedInitialFirestoreData() {
   try {
     const quotesColl = collection(db, 'quotes');
     const snap = await getDocs(quotesColl);
-    if (snap.empty) {
-      const initialQuotes = storageService.getQuotes();
-      for (const q of initialQuotes) {
-        await setDoc(doc(db, 'quotes', q.id), cleanForFirestore(q));
+    const existingQuoteIds = new Set(snap.docs.map((d) => d.id));
+    const initialQuotes = storageService.getQuotes();
+    for (const q of initialQuotes) {
+      if (!existingQuoteIds.has(q.id)) {
+        await setDoc(doc(db, 'quotes', q.id), cleanForFirestore(q), { merge: true });
       }
     }
   } catch (err) {
@@ -312,8 +314,12 @@ export function sanitizeShipmentRecord(s: Shipment): Shipment {
     (s.destination?.country || s.receiver?.country || '').toLowerCase().includes('china') ||
     (s.destination?.city || s.receiver?.city || '').toLowerCase().includes('shanghai');
 
-  // Fix for Buea, Cameroon shipments or specific tracking IDs
-  if (isOriginCameroon || s.trackingNumber?.toUpperCase() === 'NX-5314-2026') {
+  // Fix for Buea, Cameroon demo shipment (NX-5314-2026) or legacy Milan data on Buea
+  const isBueaConsignment =
+    s.trackingNumber?.toUpperCase() === 'NX-5314-2026' ||
+    ((s.origin?.city || '').toLowerCase().trim() === 'buea' && (s.origin?.facility || '').includes('Milano'));
+
+  if (isBueaConsignment) {
     const originLat = 4.1560;
     const originLng = 9.2410;
     const destLat = isDestChina ? 31.1443 : (s.destination?.lat || 31.1443);
@@ -323,9 +329,9 @@ export function sanitizeShipmentRecord(s: Shipment): Shipment {
     if (s.origin?.lat !== originLat || (s.origin?.facility && s.origin.facility.includes('Milano'))) {
       updated.origin = {
         ...s.origin,
-        city: s.origin?.city || 'Buea',
-        country: s.origin?.country || 'Cameroon',
-        code: s.origin?.code || 'BUE',
+        city: 'Buea',
+        country: 'Cameroon',
+        code: 'BUE',
         lat: originLat,
         lng: originLng,
         facility: 'Buea Regional Air & Cargo Hub',
@@ -336,9 +342,9 @@ export function sanitizeShipmentRecord(s: Shipment): Shipment {
     if (isDestChina && (s.destination?.lat !== destLat || (s.destination?.facility && s.destination.facility.includes('Calabria')))) {
       updated.destination = {
         ...s.destination,
-        city: s.destination?.city || 'Shanghai',
-        country: s.destination?.country || 'China',
-        code: s.destination?.code || 'PVG',
+        city: 'Shanghai',
+        country: 'China',
+        code: 'PVG',
         lat: destLat,
         lng: destLng,
         facility: 'NEXORA Pudong Mega Air Cargo Hub 04',
@@ -410,7 +416,9 @@ export function sanitizeShipmentRecord(s: Shipment): Shipment {
     }
   }
 
-  return updated;
+  // Auto-heal milestones, missing coordinates, or legacy Mali glitches
+  const { shipment: healed } = healShipmentMilestones(updated);
+  return healed;
 }
 
 export const storageService = {
@@ -680,8 +688,8 @@ export const storageService = {
       console.error('Storage error', e);
     }
 
-    // Firestore update
-    updateDoc(doc(db, 'shipments', id), cleanForFirestore(updates) as { [x: string]: any }).catch((err) => {
+    // Firestore update: Use setDoc with merge: true so that if the document does not exist yet (e.g. from local/mock demo seeds like shp-nx-5314-2026), it is safely created without failing with "No document to update"
+    setDoc(doc(db, 'shipments', id), cleanForFirestore(merged), { merge: true }).catch((err) => {
       handleFirestoreError(err, OperationType.UPDATE, `shipments/${id}`);
     });
 
@@ -1111,8 +1119,8 @@ export const storageService = {
       console.error('Storage error', e);
     }
 
-    // Direct Firestore update with undefined fields stripped
-    updateDoc(doc(db, 'quotes', updated.id), cleanForFirestore(updated) as unknown as { [x: string]: any }).catch((err) => {
+    // Direct Firestore upsert with undefined fields stripped
+    setDoc(doc(db, 'quotes', updated.id), cleanForFirestore(updated), { merge: true }).catch((err) => {
       handleFirestoreError(err, OperationType.UPDATE, `quotes/${updated.id}`);
     });
 
@@ -1362,7 +1370,7 @@ export const storageService = {
         console.error('Storage error', e);
       }
 
-      updateDoc(doc(db, 'messages', id), cleanForFirestore({ status })).catch((err) => {
+      setDoc(doc(db, 'messages', id), cleanForFirestore({ status }), { merge: true }).catch((err) => {
         handleFirestoreError(err, OperationType.UPDATE, `messages/${id}`);
       });
     }

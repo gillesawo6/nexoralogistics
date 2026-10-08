@@ -342,6 +342,14 @@ export const GLOBAL_LOCATION_DICTIONARY: Record<string, { lat: number; lng: numb
   'garoua': { lat: 9.3000, lng: 13.4000, country: 'Cameroon', defaultCity: 'Garoua' },
   'maroua': { lat: 10.5972, lng: 14.3158, country: 'Cameroon', defaultCity: 'Maroua' },
   'ngaoundere': { lat: 7.3195, lng: 13.5843, country: 'Cameroon', defaultCity: 'Ngaoundere' },
+  'bertoua': { lat: 4.5773, lng: 13.6846, country: 'Cameroon', defaultCity: 'Bertoua' },
+  'ebolowa': { lat: 2.9000, lng: 11.1500, country: 'Cameroon', defaultCity: 'Ebolowa' },
+  'kumba': { lat: 4.6363, lng: 9.4469, country: 'Cameroon', defaultCity: 'Kumba' },
+  'dschang': { lat: 5.4439, lng: 10.0533, country: 'Cameroon', defaultCity: 'Dschang' },
+  'edea': { lat: 3.8000, lng: 10.1333, country: 'Cameroon', defaultCity: 'Edea' },
+  'edéa': { lat: 3.8000, lng: 10.1333, country: 'Cameroon', defaultCity: 'Edea' },
+  'tiko': { lat: 4.0750, lng: 9.3600, country: 'Cameroon', defaultCity: 'Tiko' },
+  'mutengene': { lat: 4.0917, lng: 9.3056, country: 'Cameroon', defaultCity: 'Mutengene' },
   'cairo': { lat: 30.0444, lng: 31.2357, country: 'Egypt', defaultCity: 'Cairo' },
   'cai': { lat: 30.1219, lng: 31.4056, country: 'Egypt', defaultCity: 'Cairo International' },
   'alexandria': { lat: 31.2001, lng: 29.9187, country: 'Egypt', defaultCity: 'Alexandria' },
@@ -571,7 +579,7 @@ export function resolveLocationSync(
   if (cityOrAddress && (countryHint || cleanCity)) {
     try {
       const locCoord = locationService.resolveCoordinates(cityOrAddress, countryHint || '');
-      if (locCoord && (locCoord.lat !== 0 || locCoord.lng !== 0)) {
+      if (locCoord && validateCoordinates(locCoord.lat, locCoord.lng)) {
         return {
           city: locCoord.city || cityOrAddress.trim(),
           country: locCoord.country || countryHint?.trim() || 'Global',
@@ -632,24 +640,57 @@ export function resolveLocationSync(
         source: 'dictionary',
       };
     }
+    const countryObj = locationService.findCountry(countryHint);
+    if (countryObj && countryObj.latitude && countryObj.longitude) {
+      return {
+        city: cityOrAddress.trim() || countryObj.name,
+        country: countryObj.name,
+        lat: countryObj.latitude,
+        lng: countryObj.longitude,
+        source: 'dictionary',
+      };
+    }
   }
 
-  // 8. Pseudo-deterministic fallback geocoding across global regions
-  let hash = 0;
-  for (let i = 0; i < cleanCombined.length; i++) {
-    hash = (hash << 5) - hash + cleanCombined.charCodeAt(i);
-    hash |= 0;
-  }
-  const pseudoLat = 10 + (Math.abs(hash) % 400) / 10; // 10.0 to 50.0 N
-  const pseudoLng = -20 + (Math.abs(hash >> 3) % 1200) / 10; // -20.0 to 100.0 E
-
+  // 8. Strict fallback: Do NOT generate arbitrary pseudo-coordinates (which previously routed to Mali!).
+  // If coordinates cannot be reliably verified synchronously, return unresolved so the caller can
+  // perform async geocoding or notify the user instead of placing milestones in the wrong country.
   return {
-    city: cityOrAddress.trim() || 'Global Terminal',
-    country: countryHint?.trim() || 'International',
-    lat: pseudoLat,
-    lng: pseudoLng,
+    city: cityOrAddress.trim() || 'Unresolved Location',
+    country: countryHint?.trim() || '',
+    lat: NaN,
+    lng: NaN,
     source: 'fallback',
   };
+}
+
+/**
+ * Validates whether latitude and longitude are valid numeric geographic coordinates.
+ * Latitude must be between -90 and 90.
+ * Longitude must be between -180 and 180.
+ * Cannot be NaN, null, undefined, or exactly (0, 0).
+ */
+export function validateCoordinates(lat: any, lng: any): boolean {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return false;
+  if (isNaN(lat) || isNaN(lng)) return false;
+  if (!isFinite(lat) || !isFinite(lng)) return false;
+  if (lat < -90 || lat > 90) return false;
+  if (lng < -180 || lng > 180) return false;
+  if (lat === 0 && lng === 0) return false;
+  return true;
+}
+
+/**
+ * Detects if coordinates fall within the Mali Sahara/Sahel bounding box (~10°N to 25°N, -12.5°W to 4.5°E)
+ * when neither the origin nor the destination country is Mali.
+ * This identifies historical milestones that suffered from the pseudo-hash fallback glitch.
+ */
+export function isMaliAnomaly(lat: number, lng: number, originCountry?: string, destCountry?: string): boolean {
+  if (!validateCoordinates(lat, lng)) return false;
+  const isOrigMali = (originCountry || '').toLowerCase().includes('mali');
+  const isDestMali = (destCountry || '').toLowerCase().includes('mali');
+  if (isOrigMali || isDestMali) return false;
+  return lat >= 10.0 && lat <= 25.0 && lng >= -12.5 && lng <= 4.5;
 }
 
 /**
@@ -661,7 +702,7 @@ export async function resolveLocationAsync(
   facilityHint?: string
 ): Promise<GeoLocationResult> {
   const syncResult = resolveLocationSync(cityOrAddress, countryHint, facilityHint);
-  if (syncResult.source === 'dictionary' || syncResult.source === 'coordinates') {
+  if (validateCoordinates(syncResult.lat, syncResult.lng) && syncResult.source !== 'fallback') {
     return syncResult;
   }
 
@@ -680,7 +721,7 @@ export async function resolveLocationAsync(
         const item = data[0];
         const lat = parseFloat(item.lat);
         const lng = parseFloat(item.lon);
-        if (!isNaN(lat) && !isNaN(lng)) {
+        if (validateCoordinates(lat, lng)) {
           const cleanKey = cleanQuery(`${query}`);
           GEOCODE_CACHE[cleanKey] = { lat, lng };
           return {
@@ -696,6 +737,20 @@ export async function resolveLocationAsync(
     }
   } catch (err) {
     console.warn('Async geocode lookup error (using sync dictionary):', err);
+  }
+
+  // If async lookup also fails, try resolving city alone or country alone
+  if (countryHint) {
+    const countryObj = locationService.findCountry(countryHint);
+    if (countryObj && validateCoordinates(countryObj.latitude, countryObj.longitude)) {
+      return {
+        city: cityOrAddress.trim() || countryObj.name,
+        country: countryObj.name,
+        lat: countryObj.latitude,
+        lng: countryObj.longitude,
+        source: 'dictionary',
+      };
+    }
   }
 
   return syncResult;
@@ -763,8 +818,14 @@ export function resolveShipmentTelemetryLocation(shipment: ResolvableShipment): 
   // Sanitize origin coordinates if they clearly belong to another country (e.g. Italy coords for a Cameroon origin)
   const isOriginCameroon = originCountryStr.toLowerCase().includes('cameroon') || originCityStr.toLowerCase().includes('buea');
   if (isOriginCameroon && typeof originLat === 'number' && originLat > 25) {
-    originLat = 4.1560;
-    originLng = 9.2410;
+    const origGeo = resolveLocationSync(originCityStr || 'Buea', originCountryStr);
+    if (isValidCoord(origGeo.lat, origGeo.lng)) {
+      originLat = origGeo.lat;
+      originLng = origGeo.lng;
+    } else {
+      originLat = 4.1560;
+      originLng = 9.2410;
+    }
   }
 
   // If origin coordinates are missing or zero, resolve from city/country
@@ -881,12 +942,14 @@ export function resolveShipmentTelemetryLocation(shipment: ResolvableShipment): 
     const wpName = sanitizeFacilityDesc(rawName, originCountryStr, originCityStr);
     let lat = wp.lat;
     let lng = wp.lng;
-    if (!isValidCoord(lat, lng)) {
-      const geo = resolveLocationSync(wpName);
-      lat = geo.lat;
-      lng = geo.lng;
+    if (!isValidCoord(lat, lng) || isMaliAnomaly(lat!, lng!, originCountryStr, destCountryStr)) {
+      const geo = resolveLocationSync(wpName, originCountryStr || destCountryStr);
+      if (isValidCoord(geo.lat, geo.lng) && !isMaliAnomaly(geo.lat, geo.lng, originCountryStr, destCountryStr)) {
+        lat = geo.lat;
+        lng = geo.lng;
+      }
     }
-    if (isValidCoord(lat, lng)) {
+    if (isValidCoord(lat, lng) && !isMaliAnomaly(lat!, lng!, originCountryStr, destCountryStr)) {
       collectedWaypoints.push({
         name: wpName,
         lat: lat!,
@@ -897,34 +960,58 @@ export function resolveShipmentTelemetryLocation(shipment: ResolvableShipment): 
     }
   });
 
-  // Deduplicate waypoints geographically (within ~15km / 0.15 degrees)
+  // Deduplicate waypoints geographically (within ~15km / 0.15 degrees) while preserving chronological order
   const uniqueTransitWaypoints: typeof collectedWaypoints = [];
   collectedWaypoints.forEach((wp) => {
     // Avoid duplicating origin or destination
     const distToOrigin = Math.hypot(wp.lat - originLat, wp.lng - originLng);
     const distToDest = Math.hypot(wp.lat - destLat, wp.lng - destLng);
-    if (distToOrigin < 0.1 || distToDest < 0.1) {
+    if (distToOrigin < 0.05 || distToDest < 0.05) {
       return;
     }
     const alreadyExists = uniqueTransitWaypoints.some((existing) => {
-      return Math.hypot(existing.lat - wp.lat, existing.lng - wp.lng) < 0.15;
+      return Math.hypot(existing.lat - wp.lat, existing.lng - wp.lng) < 0.05;
     });
     if (!alreadyExists) {
       uniqueTransitWaypoints.push(wp);
     }
   });
 
-  // Sort transit waypoints logically along the progression vector from Origin to Destination
-  // to ensure the route polyline never loops or criss-crosses backwards!
-  const dLat = destLat - originLat;
-  const dLng = destLng - originLng;
-  const lenSq = dLat * dLat + dLng * dLng;
+  // 5. In addition to waypoints array, integrate milestones from shipment.events
+  // in chronological sequence (oldest to newest) if they have valid coordinates and aren't already included
+  if (events && Array.isArray(events) && events.length > 0) {
+    const chronologicalEvents = [...events].reverse();
+    chronologicalEvents.forEach((ev) => {
+      let evLat = ev.lat;
+      let evLng = ev.lng;
+      const rawLoc = ev.location || '';
+      const evLoc = sanitizeFacilityDesc(rawLoc, originCountryStr, originCityStr);
+      if (!isValidCoord(evLat, evLng) || isMaliAnomaly(evLat!, evLng!, originCountryStr, destCountryStr)) {
+        const geo = resolveLocationSync(evLoc, originCountryStr || destCountryStr);
+        if (isValidCoord(geo.lat, geo.lng) && !isMaliAnomaly(geo.lat, geo.lng, originCountryStr, destCountryStr)) {
+          evLat = geo.lat;
+          evLng = geo.lng;
+        }
+      }
 
-  if (lenSq > 0.0001) {
-    uniqueTransitWaypoints.sort((a, b) => {
-      const projA = ((a.lat - originLat) * dLat + (a.lng - originLng) * dLng) / lenSq;
-      const projB = ((b.lat - originLat) * dLat + (b.lng - originLng) * dLng) / lenSq;
-      return projA - projB;
+      if (isValidCoord(evLat, evLng) && !isMaliAnomaly(evLat!, evLng!, originCountryStr, destCountryStr)) {
+        const distToOrigin = Math.hypot(evLat! - originLat, evLng! - originLng);
+        const distToDest = Math.hypot(evLat! - destLat, evLng! - destLng);
+        if (distToOrigin >= 0.05 && distToDest >= 0.05) {
+          const alreadyExists = uniqueTransitWaypoints.some(
+            (existing) => Math.hypot(existing.lat - evLat!, existing.lng - evLng!) < 0.05
+          );
+          if (!alreadyExists) {
+            uniqueTransitWaypoints.push({
+              name: evLoc || ev.remarks || 'Milestone Checkpoint',
+              lat: evLat!,
+              lng: evLng!,
+              passed: ev.completed ?? true,
+              type: 'transit',
+            });
+          }
+        }
+      }
     });
   }
 
@@ -945,5 +1032,107 @@ export function resolveShipmentTelemetryLocation(shipment: ResolvableShipment): 
       locationName: liveLocationName,
     },
     waypoints: uniqueTransitWaypoints,
+  };
+}
+
+/**
+ * Automatically inspects and heals legacy or existing shipment milestone events
+ * that were affected by missing coordinates or the Mali Sahara fallback glitch.
+ * Restores accurate coordinates, re-aligns waypoints chronologically, and updates
+ * the live tracking beacon.
+ */
+export function healShipmentMilestones(shipment: Shipment): { shipment: Shipment; wasHealed: boolean } {
+  let wasHealed = false;
+  const originCountry = shipment.origin?.country || '';
+  const destCountry = shipment.destination?.country || '';
+
+  // 1. Heal milestone events
+  const healedEvents = (shipment.events || []).map((ev) => {
+    let lat = ev.lat;
+    let lng = ev.lng;
+    const hasMaliGlitch = typeof lat === 'number' && typeof lng === 'number' && isMaliAnomaly(lat, lng, originCountry, destCountry);
+    const hasMissingCoords = !validateCoordinates(lat, lng);
+
+    if (hasMaliGlitch || hasMissingCoords) {
+      const resolved = resolveLocationSync(ev.location || '', originCountry || destCountry);
+      if (validateCoordinates(resolved.lat, resolved.lng) && !isMaliAnomaly(resolved.lat, resolved.lng, originCountry, destCountry)) {
+        wasHealed = true;
+        return {
+          ...ev,
+          lat: resolved.lat,
+          lng: resolved.lng,
+        };
+      }
+    }
+    return ev;
+  });
+
+  // 2. Heal currentLocation if affected
+  let healedLocation = { ...shipment.currentLocation };
+  if (
+    typeof healedLocation.lat === 'number' &&
+    typeof healedLocation.lng === 'number' &&
+    (isMaliAnomaly(healedLocation.lat, healedLocation.lng, originCountry, destCountry) || !validateCoordinates(healedLocation.lat, healedLocation.lng))
+  ) {
+    if (healedEvents.length > 0 && validateCoordinates(healedEvents[0].lat, healedEvents[0].lng)) {
+      healedLocation.lat = healedEvents[0].lat!;
+      healedLocation.lng = healedEvents[0].lng!;
+      wasHealed = true;
+    } else {
+      healedLocation.lat = shipment.origin.lat;
+      healedLocation.lng = shipment.origin.lng;
+      wasHealed = true;
+    }
+  }
+
+  // 3. Rebuild waypoints in strict chronological sequence: Origin -> Milestones (oldest to newest) -> Destination
+  // shipment.events is typically ordered newest-first, so chronological order of milestones is reversed
+  const chronologicalEvents = [...healedEvents].reverse();
+  const newWaypoints: Waypoint[] = [
+    {
+      name: shipment.origin.address || `${shipment.origin.city}, ${shipment.origin.country}`,
+      lat: shipment.origin.lat,
+      lng: shipment.origin.lng,
+      type: 'origin',
+      passed: true,
+      timestamp: shipment.dispatchedDate,
+    },
+  ];
+
+  chronologicalEvents.forEach((ev) => {
+    if (validateCoordinates(ev.lat, ev.lng) && !isMaliAnomaly(ev.lat!, ev.lng!, originCountry, destCountry)) {
+      // Don't duplicate origin or destination
+      const isOrigin = Math.hypot(ev.lat! - shipment.origin.lat, ev.lng! - shipment.origin.lng) < 0.05;
+      const isDest = Math.hypot(ev.lat! - shipment.destination.lat, ev.lng! - shipment.destination.lng) < 0.05;
+      if (!isOrigin && !isDest) {
+        newWaypoints.push({
+          name: ev.location,
+          lat: ev.lat!,
+          lng: ev.lng!,
+          type: 'transit',
+          passed: ev.completed ?? true,
+          timestamp: `${ev.date} ${ev.time}`,
+        });
+      }
+    }
+  });
+
+  newWaypoints.push({
+    name: shipment.destination.address || `${shipment.destination.city}, ${shipment.destination.country}`,
+    lat: shipment.destination.lat,
+    lng: shipment.destination.lng,
+    type: 'destination',
+    passed: shipment.status === 'Delivered',
+    timestamp: shipment.estimatedDelivery,
+  });
+
+  return {
+    shipment: {
+      ...shipment,
+      events: healedEvents,
+      currentLocation: healedLocation,
+      waypoints: newWaypoints,
+    },
+    wasHealed,
   };
 }

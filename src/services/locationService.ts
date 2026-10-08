@@ -335,7 +335,19 @@ class LocationService {
     const cities = this.getCitiesByCountry(countryCode);
     const cleanCity = cityName.toLowerCase().trim();
     
-    // 1. Exact match
+    // 1. Check known logistics hubs first for highest precision coordinates
+    const hubMatch = this.findHubByCityAndCountry(cityName, countryName);
+    if (hubMatch && hubMatch.lat && hubMatch.lng) {
+      return {
+        lat: hubMatch.lat,
+        lng: hubMatch.lng,
+        country: hubMatch.country,
+        city: hubMatch.city,
+        code: hubMatch.code,
+      };
+    }
+
+    // 2. Exact match in country's city database
     const exact = cities.find((c) => c.name.toLowerCase() === cleanCity);
     if (exact && exact.latitude && exact.longitude) {
       return {
@@ -347,7 +359,7 @@ class LocationService {
       };
     }
 
-    // 2. Substring match
+    // 3. Substring match in country's city database
     const partial = cities.find((c) => c.name.toLowerCase().includes(cleanCity) || cleanCity.includes(c.name.toLowerCase()));
     if (partial && partial.latitude && partial.longitude) {
       return {
@@ -359,19 +371,21 @@ class LocationService {
       };
     }
 
-    // 3. Fallback to Country centroid or pseudo-deterministic
-    let hash = 0;
-    const combined = `${cityName} ${countryName}`;
-    for (let i = 0; i < combined.length; i++) {
-      hash = (hash << 5) - hash + combined.charCodeAt(i);
-      hash |= 0;
+    // 4. Fallback to Country centroid if valid; never use pseudo-coordinates that fall in Mali/Sahara
+    if (country && typeof country.latitude === 'number' && typeof country.longitude === 'number' && (country.latitude !== 0 || country.longitude !== 0)) {
+      return {
+        lat: country.latitude,
+        lng: country.longitude,
+        country: countryName,
+        city: cityName,
+        code: cityName.substring(0, 3).toUpperCase(),
+      };
     }
-    const pseudoLat = (country?.latitude || 20) + ((Math.abs(hash) % 100) - 50) / 50;
-    const pseudoLng = (country?.longitude || 0) + ((Math.abs(hash >> 2) % 100) - 50) / 50;
 
+    // 5. Unresolved: return NaN so that caller knows coordinates need geocoding or user selection
     return {
-      lat: country?.latitude || pseudoLat,
-      lng: country?.longitude || pseudoLng,
+      lat: NaN,
+      lng: NaN,
       country: countryName,
       city: cityName,
       code: cityName.substring(0, 3).toUpperCase(),

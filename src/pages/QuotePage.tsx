@@ -273,12 +273,14 @@ export const QuotePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-mono-tech flex items-center justify-center gap-2">
-                <Mail className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>
-                  <strong>Automated Email Dispatched:</strong> A complete rate receipt &amp; corridor breakdown has been automatically sent to <strong>{email}</strong> and our operations desk.
-                </span>
-              </div>
+              {emailDispatchResult?.delivered ? (
+                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-mono-tech flex items-center justify-center gap-2">
+                  <Mail className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <span>
+                    <strong>Automated Email Dispatched:</strong> A complete rate receipt &amp; corridor breakdown has been automatically sent to <strong>{email}</strong> and our operations desk.
+                  </span>
+                </div>
+              ) : null}
 
               {/* Spam/Junk Folder Notice Card */}
               {emailDispatchResult && !emailDispatchResult.delivered ? (

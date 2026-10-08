@@ -62,7 +62,7 @@ import {
 import { updatePageSeo } from '../../services/seoService';
 import { GLOBAL_HUBS, SHIPMENT_PRESETS, ShipmentPresetTemplate } from '../../data/hubPresets';
 import { PrintableShipmentDossier } from '../../components/tracking/PrintableShipmentDossier';
-import { resolveLocationSync, resolveShipmentTelemetryLocation } from '../../utils/geoUtils';
+import { resolveLocationSync, resolveShipmentTelemetryLocation, validateCoordinates, isMaliAnomaly } from '../../utils/geoUtils';
 import { useToast } from '../../context/ToastContext';
 import { CountrySelect } from '../../components/common/CountrySelect';
 import { CitySelect } from '../../components/common/CitySelect';
@@ -663,22 +663,55 @@ export const NewShipmentPage: React.FC = () => {
       estimatedDelivery: `${expectedDeliveryDate} ${pickupTime}`,
       dispatchedDate: `${departureDate} ${departureTime}`,
       lastUpdated: formattedNow,
-      waypoints: buildWaypoints(),
-      events: [
-        {
-          id: `ev-${Date.now()}`,
-          date: departureDate,
-          time: departureTime,
-          location: milestoneLocation.trim() || `${originCity}, ${originCountry}`,
-          status: initialStatus,
-          updatedBy: 'admin',
-          remarks: milestoneRemarks.trim() || 'Pacco Registrato',
-          description: milestoneDesc.trim() || 'Shipment registered in logistics network.',
-          lat: originLat,
-          lng: originLng,
-          completed: true,
-        },
-      ],
+      waypoints: (() => {
+        const base = buildWaypoints();
+        const mLocStr = milestoneLocation.trim();
+        if (mLocStr) {
+          const mGeo = resolveLocationSync(mLocStr, originCountry);
+          if (validateCoordinates(mGeo.lat, mGeo.lng) && !isMaliAnomaly(mGeo.lat, mGeo.lng, originCountry, destCountry)) {
+            const isOrig = Math.hypot(mGeo.lat - safeOriginLat, mGeo.lng - safeOriginLng) < 0.05;
+            const isDest = Math.hypot(mGeo.lat - safeDestLat, mGeo.lng - safeDestLng) < 0.05;
+            if (!isOrig && !isDest) {
+              const destWp = base.pop();
+              base.push({
+                name: mLocStr,
+                lat: mGeo.lat,
+                lng: mGeo.lng,
+                type: 'transit',
+                passed: true,
+                timestamp: `${departureDate} ${departureTime}`,
+              });
+              if (destWp) base.push(destWp);
+            }
+          }
+        }
+        return base;
+      })(),
+      events: (() => {
+        const mLocStr = milestoneLocation.trim() || `${originCity}, ${originCountry}`;
+        const mGeo = resolveLocationSync(mLocStr, originCountry);
+        const mLat = validateCoordinates(mGeo.lat, mGeo.lng) && !isMaliAnomaly(mGeo.lat, mGeo.lng, originCountry, destCountry)
+          ? mGeo.lat
+          : safeOriginLat;
+        const mLng = validateCoordinates(mGeo.lat, mGeo.lng) && !isMaliAnomaly(mGeo.lat, mGeo.lng, originCountry, destCountry)
+          ? mGeo.lng
+          : safeOriginLng;
+        return [
+          {
+            id: `ev-${Date.now()}`,
+            date: departureDate,
+            time: departureTime,
+            location: mLocStr,
+            status: initialStatus,
+            updatedBy: 'admin',
+            remarks: milestoneRemarks.trim() || 'Pacco Registrato',
+            description: milestoneDesc.trim() || 'Shipment registered in logistics network.',
+            lat: mLat,
+            lng: mLng,
+            completed: true,
+          },
+        ];
+      })(),
       isSimulatedDemo: false,
     };
 

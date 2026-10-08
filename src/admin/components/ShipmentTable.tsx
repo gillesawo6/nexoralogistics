@@ -15,9 +15,10 @@ import {
   CheckCircle2,
   Plus
 } from 'lucide-react';
-import { Shipment, ShipmentStatus, TransportMode } from '../../types';
+import { Shipment, ShipmentStatus, TransportMode, TrackingEvent, Waypoint } from '../../types';
 import { StatusBadge } from './StatusBadge';
 import { storageService } from '../../services/storageService';
+import { resolveLocationSync, validateCoordinates, isMaliAnomaly } from '../../utils/geoUtils';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { useToast } from '../../context/ToastContext';
 
@@ -70,23 +71,96 @@ export const ShipmentTable: React.FC<ShipmentTableProps> = ({
     if (!editingShipment) return;
 
     let updatedEvents = [...editingShipment.events];
+    let updatedLocation = { ...editingShipment.currentLocation };
+    let updatedWaypoints = [...editingShipment.waypoints];
+
     if (newEventTitle.trim()) {
       const now = new Date();
-      updatedEvents.unshift({
+      const locStr = newEventLoc.trim() || `${editingShipment.currentLocation.city}, ${editingShipment.currentLocation.country}`;
+      const geo = resolveLocationSync(locStr, editingShipment.origin.country || editingShipment.destination.country);
+      const evLat = validateCoordinates(geo.lat, geo.lng) && !isMaliAnomaly(geo.lat, geo.lng, editingShipment.origin.country, editingShipment.destination.country)
+        ? geo.lat
+        : editingShipment.currentLocation.lat;
+      const evLng = validateCoordinates(geo.lat, geo.lng) && !isMaliAnomaly(geo.lat, geo.lng, editingShipment.origin.country, editingShipment.destination.country)
+        ? geo.lng
+        : editingShipment.currentLocation.lng;
+
+      const newEv: TrackingEvent = {
         id: `ev-${Date.now()}`,
         date: now.toISOString().split('T')[0],
         time: now.toTimeString().split(' ')[0] + ' UTC',
-        location: newEventLoc.trim() || `${editingShipment.currentLocation.city}, ${editingShipment.currentLocation.country}`,
+        location: locStr,
         status: newStatus,
         description: newEventTitle.trim(),
+        remarks: newEventTitle.trim(),
+        lat: evLat,
+        lng: evLng,
         completed: true,
+      };
+      updatedEvents = [newEv, ...editingShipment.events];
+
+      if (validateCoordinates(evLat, evLng)) {
+        updatedLocation = {
+          ...updatedLocation,
+          city: geo.city || locStr.split(',')[0].trim(),
+          country: geo.country || editingShipment.origin.country,
+          address: locStr,
+          lat: evLat,
+          lng: evLng,
+        };
+      }
+
+      // Rebuild waypoints in strict chronological sequence: Origin -> Milestones (oldest to newest) -> Destination
+      const chronologicalEvents = [...updatedEvents].reverse();
+      const newWaypoints: Waypoint[] = [
+        {
+          name: editingShipment.origin.address || `${editingShipment.origin.city}, ${editingShipment.origin.country}`,
+          lat: editingShipment.origin.lat,
+          lng: editingShipment.origin.lng,
+          type: 'origin',
+          passed: true,
+          timestamp: editingShipment.dispatchedDate,
+        },
+      ];
+
+      chronologicalEvents.forEach((ev) => {
+        if (validateCoordinates(ev.lat, ev.lng) && !isMaliAnomaly(ev.lat!, ev.lng!, editingShipment.origin.country, editingShipment.destination.country)) {
+          const isOrig = Math.hypot(ev.lat! - editingShipment.origin.lat, ev.lng! - editingShipment.origin.lng) < 0.05;
+          const isDest = Math.hypot(ev.lat! - editingShipment.destination.lat, ev.lng! - editingShipment.destination.lng) < 0.05;
+          if (!isOrig && !isDest) {
+            const already = newWaypoints.some((wp) => wp.type === 'transit' && Math.hypot(wp.lat - ev.lat!, wp.lng - ev.lng!) < 0.05);
+            if (!already) {
+              newWaypoints.push({
+                name: ev.location,
+                lat: ev.lat!,
+                lng: ev.lng!,
+                type: 'transit',
+                passed: ev.completed ?? true,
+                timestamp: `${ev.date} ${ev.time}`,
+              });
+            }
+          }
+        }
       });
+
+      newWaypoints.push({
+        name: editingShipment.destination.address || `${editingShipment.destination.city}, ${editingShipment.destination.country}`,
+        lat: editingShipment.destination.lat,
+        lng: editingShipment.destination.lng,
+        type: 'destination',
+        passed: newStatus === 'Delivered',
+        timestamp: editingShipment.estimatedDelivery,
+      });
+
+      updatedWaypoints = newWaypoints;
     }
 
     storageService.updateShipment(editingShipment.id, {
       status: newStatus,
       progressPercent: Number(newProgress),
       events: updatedEvents,
+      currentLocation: updatedLocation,
+      waypoints: updatedWaypoints,
       lastUpdated: new Date().toISOString().replace('T', ' ').substring(0, 16) + ' UTC',
     });
 

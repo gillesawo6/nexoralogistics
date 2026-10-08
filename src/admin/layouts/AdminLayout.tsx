@@ -40,12 +40,12 @@ export const AdminLayout: React.FC = () => {
   }, [sidebarOpen]);
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#030712] text-slate-900 dark:text-white transition-colors duration-200 flex flex-col lg:flex-row w-full max-w-full overflow-x-hidden">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#030712] text-slate-900 dark:text-white transition-colors duration-200 flex flex-col lg:flex-row w-full max-w-full overflow-x-clip">
       {/* Sidebar Component */}
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full lg:pl-72 overflow-x-hidden">
+      <div className="flex-1 flex flex-col min-w-0 w-full max-w-full lg:pl-72 overflow-x-clip">
         {/* Admin Header */}
         <AdminHeader 
           onToggleSidebar={() => setSidebarOpen((prev) => !prev)} 
@@ -53,7 +53,7 @@ export const AdminLayout: React.FC = () => {
         />
 
         {/* Dynamic Admin Page Container */}
-        <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-5 md:p-6 lg:p-8 max-w-7xl w-full mx-auto min-w-0 overflow-x-clip">
           <Outlet />
         </main>
       </div>

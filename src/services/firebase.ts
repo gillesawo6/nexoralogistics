@@ -261,11 +261,11 @@ export async function toggleUserAuthorization(uid: string, newAuthorizedStatus: 
   const docRef = doc(db, 'authorizedUsers', uid);
   const now = new Date().toISOString();
   try {
-    await updateDoc(docRef, cleanForFirestore({
+    await setDoc(docRef, cleanForFirestore({
       authorized: newAuthorizedStatus,
       updatedAt: now,
       ...(newAuthorizedStatus ? { approvedAt: now } : {})
-    }));
+    }), { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.UPDATE, `authorizedUsers/${uid}`);
     throw err;
